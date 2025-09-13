@@ -86,10 +86,7 @@ export default function Board() {
         return result;
     }
     return (
-        <div className="flex justify-center items-center flex-col h-[100vh]" onClick={() => {
-            setActiveSquare({ row: null, col: null });
-            setAvailableMoves([]);
-        }}>
+        <div className="flex justify-center items-center flex-col h-[100vh]">
             <div className={`${curTurn === "white" ? "" : ""}`}>
                 {curTurn === "white" ? "White" : "Black"} {"'s turn"}
             </div>
@@ -101,14 +98,14 @@ export default function Board() {
                         const isWhiteSquare = (rowIndex + colIndex) % 2 == 0;
                         const isAvailableMove = availableMoves.some(move => move.row === rowIndex && move.col === colIndex);
                         const isActiveSquare = activeSquare.row === rowIndex && activeSquare.col === colIndex;
-                        return (<button key={`${rowIndex},${colIndex}`} onClick={() => { handleClick({ row: rowIndex, col: colIndex, piece: item }) }} className={`md:w-[100px] md:h-[100px] w-[50px] h-[50px] flex justify-center items-center ${getBackground(isWhiteSquare, rowIndex, colIndex)}`}>
-                            {piece ? <img src={piece} className={`w-[80%]     transition-transform duration-300 ease-in-out ${isAvailableMove && "border border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} /> : isAvailableMove && <div className="md:w-[30px] md:h-[30px] w-[15px] h-[15px] bg-[#769656] rounded-full"></div>}
+                        return (<button key={`${rowIndex},${colIndex}`} onClick={() => { handleClick({ row: rowIndex, col: colIndex, piece: item }) }} className={`max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] md:h-[100px] w-[50px] h-[50px] flex justify-center items-center ${getBackground(isWhiteSquare, rowIndex, colIndex)}`}>
+                            {piece ? <img src={piece} className={`w-[80%]  transition-transform duration-300 ease-in-out ${isAvailableMove && "border border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} /> : isAvailableMove && <div className="w-[30%] h-[30%] bg-[#769656] rounded-full"></div>}
                         </button>)
                     })}
                 </div>
             ))}
             <div className="flex justify-center text-center ml-4">{Array.from({ length: 8 }, (_, i) => (String.fromCharCode('a'.charCodeAt(0) + i)
-            )).map((item, index) => (<span key={index} className="md:w-[100px] w-[50px]">{item}</span>))}</div>
+            )).map((item, index) => (<span key={index} className="max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] w-[50px]">{item}</span>))}</div>
         </div>
     );
 }
