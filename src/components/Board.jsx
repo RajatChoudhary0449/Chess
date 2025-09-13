@@ -11,7 +11,7 @@ import whiteQueen from "../assets/whiteQueen.png";
 import whiteKing from "../assets/whiteKing.png";
 import whitePawn from "../assets/whitePawn.png";
 import { useState } from "react";
-import { blackPieceAvailable, getAllPossibleMoves, whitePieceAvailable } from "../utils/CommonFunctions.js"
+import { blackPieceAvailable, encode, getAllPossibleMoves, playMove, whitePieceAvailable } from "../utils/CommonFunctions.js"
 export default function Board() {
     const [activeSquare, setActiveSquare] = useState({ row: null, col: null });
     const [curTurn, setCurTurn] = useState("white");
@@ -23,8 +23,8 @@ export default function Board() {
         Array.from({ length: 8 }, () => "P"),
         ["R", "N", "B", "Q", "K", "B", "N", "R"],
     ]);
+    const [moves, setMoves] = useState([]);
     const handleClick = ({ row, col, piece }) => {
-        console.log(activeSquare.row, activeSquare.col);
         if (curTurn === "white") {
             //Handle First White Tap
             if (whitePieceAvailable(row, col, board)) {
@@ -45,10 +45,12 @@ export default function Board() {
         }
         const isPlayable = availableMoves.some(move => move.row === row && move.col === col);
         if (isPlayable) {
-            const curBoard = [...board.map(item => [...item])];
-            curBoard[row][col] = board[activeSquare.row][activeSquare.col];
-            curBoard[activeSquare.row][activeSquare.col] = "";
-            setBoard(curBoard);
+            const isCaptured = (curTurn === "white" && blackPieceAvailable(row, col, board)) || (curTurn === "black" && whitePieceAvailable(row, col, board));
+            const capturedPiece = isCaptured ? board[row][col] : null;
+            const curMove={ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col }, isCaptured: isCaptured, capturedPiece: capturedPiece, turn: curTurn }
+            const updatedBoard=playMove(curMove,board);
+            setBoard(updatedBoard);
+            setMoves([curMove, ...moves]);
             setCurTurn((cur) => cur === "white" ? "black" : "white");
         }
         setActiveSquare({ row: null, col: null });
@@ -90,22 +92,31 @@ export default function Board() {
             <div className={`${curTurn === "white" ? "" : ""}`}>
                 {curTurn === "white" ? "White" : "Black"} {"'s turn"}
             </div>
-            {board.map((row, rowIndex) => (
-                <div key={rowIndex} className="flex justify-center items-center cursor-pointer">
-                    <div className="mr-2">{8 - rowIndex}</div>
-                    {row.map((item, colIndex) => {
-                        const piece = mapSymbolToPiece(item);
-                        const isWhiteSquare = (rowIndex + colIndex) % 2 == 0;
-                        const isAvailableMove = availableMoves.some(move => move.row === rowIndex && move.col === colIndex);
-                        const isActiveSquare = activeSquare.row === rowIndex && activeSquare.col === colIndex;
-                        return (<button key={`${rowIndex},${colIndex}`} onClick={() => { handleClick({ row: rowIndex, col: colIndex, piece: item }) }} className={`max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] md:h-[100px] w-[50px] h-[50px] flex justify-center items-center ${getBackground(isWhiteSquare, rowIndex, colIndex)}`}>
-                            {piece ? <img src={piece} className={`w-[80%]  transition-transform duration-300 ease-in-out ${isAvailableMove && "border border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} /> : isAvailableMove && <div className="w-[30%] h-[30%] bg-[#769656] rounded-full"></div>}
-                        </button>)
-                    })}
+            <div className="flex md:flex-row flex-col gap-x-4">
+                <div className="flex flex-col">
+                    {board.map((row, rowIndex) => (
+                        <div key={rowIndex} className="flex justify-center items-center cursor-pointer">
+                            <div className="mr-2">{8 - rowIndex}</div>
+                            {row.map((item, colIndex) => {
+                                const piece = mapSymbolToPiece(item);
+                                const isWhiteSquare = (rowIndex + colIndex) % 2 == 0;
+                                const isAvailableMove = availableMoves.some(move => move.row === rowIndex && move.col === colIndex);
+                                const isActiveSquare = activeSquare.row === rowIndex && activeSquare.col === colIndex;
+                                return (<button key={`${rowIndex},${colIndex}`} onClick={() => { handleClick({ row: rowIndex, col: colIndex, piece: item }) }} className={`max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] md:h-[100px] w-[50px] h-[50px] flex justify-center items-center ${getBackground(isWhiteSquare, rowIndex, colIndex)}`}>
+                                    {piece ? <img src={piece} className={`w-[80%]  transition-transform duration-300 ease-in-out ${isAvailableMove && "border border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} /> : isAvailableMove && <div className="w-[30%] h-[30%] bg-[#769656] rounded-full"></div>}
+                                </button>)
+                            })}
+                        </div>
+                    ))}
+                    <div className="flex justify-center text-center ml-4">{Array.from({ length: 8 }, (_, i) => (String.fromCharCode('a'.charCodeAt(0) + i)
+                    )).map((item, index) => (<span key={index} className="max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] w-[50px]">{item}</span>))}</div>
                 </div>
-            ))}
-            <div className="flex justify-center text-center ml-4">{Array.from({ length: 8 }, (_, i) => (String.fromCharCode('a'.charCodeAt(0) + i)
-            )).map((item, index) => (<span key={index} className="max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] w-[50px]">{item}</span>))}</div>
+                <div className="">
+                    <ul>
+                        {moves.map((cur, index) => (<li key={index}>{cur.turn} played {encode(cur.from.row, cur.from.col)} to {encode(cur.to.row, cur.to.col)}</li>))}
+                    </ul>
+                </div>
+            </div>
         </div>
     );
 }
