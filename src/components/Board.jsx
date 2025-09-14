@@ -99,9 +99,15 @@ export default function Board() {
             return "bg-red-500";
         if (board[row][col] === PIECES.BLACK.KING && isBlackKingChecked(board))
             return "bg-red-500";
+        const lastMove=moves.length>0 ? moves[0]:null;
         const shouldHover = (curTurn === "white" && whitePieceAvailable(row, col, board)) || (availableMoves.some((item) => item.row === row && item.col === col));
+        
+        if(lastMove && ((lastMove.from.row===row && lastMove.from.col===col)|| lastMove.to.row===row && lastMove.to.col===col))
+        {
+            return `bg-amber-300 ${shouldHover&& "hover:bg-amber-400"}`
+        }
         if (row === activeSquare.row && col === activeSquare.col)
-            return `bg-[#fef08a] ${shouldHover && "hover:bg-[#fde047]"}`;
+            return `bg-yellow-200 ${shouldHover && "hover:bg-[#fde047]"}`;
         else
             return isWhiteSquare ? `bg-[#f0d9b5] ${shouldHover && "hover:bg-[#e6cfa5]"}` : `bg-[#b58863] ${shouldHover && "hover:bg-[#a07556]"}`;
     }
@@ -142,7 +148,7 @@ export default function Board() {
         setMoves([]);
     }
     return (
-        <div className="flex justify-center items-center flex-col h-[100vh] " style={{ backgroundImage: `url("/icon.jpeg")` }}>
+        <div className="flex justify-center items-center flex-col h-[100dvh]" style={{ backgroundImage: `url("/icon.jpeg")` }}>
             {promotionPiece && <PromotionModal curTurn={curTurn} handlePromotion={handlePromotion} />}
             <GameOverModal gameOver={gameOver} message={message} />
             <div className="flex md:flex-row flex-col gap-x-4 gap-y-4">
@@ -165,7 +171,7 @@ export default function Board() {
                                     return (<button key={`${rowIndex},${colIndex}`} onClick={() => { handleClick({ row: rowIndex, col: colIndex, piece: item }) }} className={`max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] md:h-[100px] w-[50px] h-[50px] flex justify-center items-center relative ${getBackground(isWhiteSquare, rowIndex, colIndex)} ${isWhiteSquare ? "text-[#5c3a1e]" : "text-[#fdf6e3]"} md:text-[16px] text-[10px]`}>
                                         {colIndex === 0 && <div className="absolute md:left-1 md:top-1 left-0.5 top-0.5">{8 - rowIndex}</div>}
                                         {rowIndex === 7 && <div className="absolute md:right-1 ,md:bottom-1 right-0.5 bottom-0.5">{String.fromCharCode('a'.charCodeAt(0) + colIndex)}</div>}
-                                        {piece ? <img src={piece} className={`w-[80%]  transition-transform duration-300 ease-in-out ${isAvailableMove && "border border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} /> : isAvailableMove && <div className="w-[30%] h-[30%] bg-[#769656] rounded-full"></div>}
+                                        {piece ? <img src={piece} className={`w-[80%]  transition-transform duration-300 ease-in-out ${isAvailableMove && "border-6 border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} /> : isAvailableMove && <div className="w-[30%] h-[30%] bg-[#769656] rounded-full"></div>}
                                     </button>)
                                 })}
                             </div>
@@ -174,25 +180,35 @@ export default function Board() {
                     )).map((item, index) => (<span key={index} className="max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] w-[50px]">{item}</span>))}</div> */}
                     </div>
                 </div>
-                <div className="md:w-[190px] w-[90%] mx-auto px-4 max-h-[80%] bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 md:mt-12">
-                    <ul className="flex flex-col gap-2">
-                        <li className="flex flex-row gap-2">
-                            <div className="flex items-center">Move List</div>
-                            {moves.length > 0 &&
+                <div className="h-[300px] md:h-[80vh] w-full">
+
+                    <div className="md:w-[220px] w-[90%] mx-auto px-4 h-full bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 md:mt-12 rounded-md shadow-md flex flex-col">
+
+                        <div className="flex justify-between items-center mb-2">
+                            <div className="font-semibold">Move List</div>
+                            {moves.length > 0 && (
                                 <div className="flex gap-x-2 text-white">
-                                    <button onClick={handleMoveUndo} className="bg-amber-400 p-2 rounded-[4px]" >
-                                        <i className="fas fa-undo" title="Undo"></i></button>
+                                    <button onClick={handleMoveUndo} className="bg-amber-400 p-2 rounded-[4px]">
+                                        <i className="fas fa-undo" title="Undo"></i>
+                                    </button>
                                     <button onClick={handleResetGame} className="bg-red-500 p-2 rounded-[4px]">
-                                        <i className="fas fa-refresh" title="Refresh"></i></button>
+                                        <i className="fas fa-refresh" title="Refresh"></i>
+                                    </button>
                                 </div>
-                            }</li>
-                        {moves.map((cur, index) => (<li key={index} className="flex gap-x-2 items-center">
-                            <div>{moves.length-index}</div>
-                            <div className={`w-[20px] h-[20px] ${cur.turn==="white"?"bg-white":"bg-black"} shadow-2xl rounded-full`}></div>
-                            played {encode(cur.from.row, cur.from.col)} to {encode(cur.to.row, cur.to.col)}</li>))}
-                    </ul>
+                            )}
+                        </div>
+                        <ul className="flex flex-col gap-2 overflow-y-auto h-[300px] md:h-[500px]">
+                            {moves.map((cur, index) => (
+                                <li key={index} className="flex gap-x-2 items-center text-sm pb-1">
+                                    <div className="w-[20px] text-center">{moves.length - index}</div>
+                                    <div className={`w-[20px] h-[20px] ${cur.turn === "white" ? "bg-white" : "bg-black"} shadow-md rounded-full`}></div>
+                                    <span>played {encode(cur.from.row, cur.from.col)} → {encode(cur.to.row, cur.to.col)}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

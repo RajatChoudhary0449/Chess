@@ -433,10 +433,10 @@ export const getAllBlackPawn = (
     if (col + 1 < 8 && whitePieceAvailable(row + 1, col + 1, board))
       allMoves.push({ row: row + 1, col: col + 1 });
   }
-  if(canEnPassant(lastMove,row))
-  {
-    //ToDo
-  }
+  // if(canEnPassant(lastMove,{currow:row,curCol:col}))
+  // {
+  //   //ToDo
+  // }
   if (!validateKingSafety) return allMoves;
   const selectedMove = filterCheckMovesOut(
     { row, col },
@@ -467,10 +467,10 @@ export const getAllWhitePawn = (
     if (col + 1 < 8 && blackPieceAvailable(row - 1, col + 1, board))
       allMoves.push({ row: row - 1, col: col + 1 });
   }
-  if(canEnPassant(lastMove,row))
-  {
-    //ToDo
-  }
+  // if(canEnPassant(lastMove,{curRow,curCol}))
+  // {
+  //   //ToDo
+  // }
   if (!validateKingSafety) return allMoves;
   const selectedMove = filterCheckMovesOut({ row, col }, allMoves, board, true);
   return selectedMove;
@@ -672,11 +672,11 @@ export const isBlackKingChecked = (board) => {
     (item) => item.row === kingRow && item.col === kingCol
   );
 };
-export const canEnPassant=(lastMove,curRow)=>{
-  if(!lastMove) return false;
-  return ((lastMove.piece===PIECES.WHITE.PAWN || lastMove.piece===PIECES.BLACK.PAWN) && Math.abs(lastMove.from.row-lastMove.to.row)===2 && Math.abs(lastMove.from.col-col)===1 &&
-  lastMove.to.row === curRow)
-}
+// export const canEnPassant=(lastMove,{curRow,curCol})=>{
+//   if(!lastMove) return false;
+//   return ((lastMove.piece===PIECES.WHITE.PAWN || lastMove.piece===PIECES.BLACK.PAWN) && Math.abs(lastMove.from.row-lastMove.to.row)===2 && Math.abs(lastMove.from.col-curCol)===1 &&
+//   lastMove.to.row === curRow)
+// }
 export const playMove = (move, board, promoteTo = null, castling = false) => {
   const curBoard = [...board.map((item) => [...item])];
   const { from, to } = move;
