@@ -11,19 +11,19 @@ import whiteQueen from "../assets/whiteQueen.png";
 import whiteKing from "../assets/whiteKing.png";
 import whitePawn from "../assets/whitePawn.png";
 import { useState } from "react";
-import { blackPieceAvailable, encode, getAllPossibleMoves, playMove, whitePieceAvailable } from "../utils/CommonFunctions.js"
+import { blackPieceAvailable, encode, getAllBlackMoves, getAllPossibleMoves, getAllWhiteMoves, isBlackKingChecked, isWhiteKingChecked, playMove, whitePieceAvailable } from "../utils/CommonFunctions.js"
+import { INITIALBOARDSETUP, PIECES } from "../constants/constants.js";
+import GameOverModal from "./GameOverModal.jsx";
+import PromotionModal from "./PromotionModal.jsx";
 export default function Board() {
     const [activeSquare, setActiveSquare] = useState({ row: null, col: null });
     const [curTurn, setCurTurn] = useState("white");
     const [availableMoves, setAvailableMoves] = useState([]);
-    const [board, setBoard] = useState([
-        ["r", "n", "b", "q", "k", "b", "n", "r"],
-        Array.from({ length: 8 }, () => "p"),
-        ...Array.from({ length: 4 }, () => Array.from({ length: 8 }, () => "")),
-        Array.from({ length: 8 }, () => "P"),
-        ["R", "N", "B", "Q", "K", "B", "N", "R"],
-    ]);
+    const [promotionPiece, setPromotionPiece] = useState("");
+    const [gameOver, setGameOver] = useState(false);
+    const [board, setBoard] = useState(INITIALBOARDSETUP);
     const [moves, setMoves] = useState([]);
+    const [message, setMessage] = useState("");
     const handleClick = ({ row, col, piece }) => {
         if (curTurn === "white") {
             //Handle First White Tap
@@ -47,23 +47,60 @@ export default function Board() {
         if (isPlayable) {
             const isCaptured = (curTurn === "white" && blackPieceAvailable(row, col, board)) || (curTurn === "black" && whitePieceAvailable(row, col, board));
             const capturedPiece = isCaptured ? board[row][col] : null;
-            const curMove={ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col }, isCaptured: isCaptured, capturedPiece: capturedPiece, turn: curTurn }
-            const updatedBoard=playMove(curMove,board);
+            const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col }, isCaptured: isCaptured, capturedPiece: capturedPiece, turn: curTurn }
+            //Check for promotion if any:
+            const isPromotion =
+                (curTurn === "white" && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.PAWN && row === 0) ||
+                (curTurn === "black" && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.PAWN && row === 7);
+            if (isPromotion) {
+                setPromotionPiece({ move: curMove, turn: curTurn });
+            }
+
+            const updatedBoard = playMove(curMove, board);
             setBoard(updatedBoard);
             setMoves([curMove, ...moves]);
             setCurTurn((cur) => cur === "white" ? "black" : "white");
+            if (getAllWhiteMoves(updatedBoard).length === 0) {
+                if (isWhiteKingChecked(updatedBoard)) {
+                    setMessage("Black wins!!!");
+                }
+                else {
+                    setMessage("Draw by stalemate");
+                }
+                setGameOver(true);
+            }
+            if (getAllBlackMoves(updatedBoard).length === 0) {
+                if (isBlackKingChecked(updatedBoard)) {
+                    setMessage("White wins!!!");
+                }
+                else {
+                    setMessage("Draw by stalemate");
+                }
+                setGameOver(true);
+            }
+
         }
         setActiveSquare({ row: null, col: null });
         setAvailableMoves([]);
     }
+    const handlePromotion = (piece) => {
+        const { move, turn } = promotionPiece;
+        const updatedBoard = playMove(move, board, piece);
+        setBoard(updatedBoard);
+        setMoves([move, ...moves]);
+        setCurTurn(turn === "white" ? "black" : "white");
+        setPromotionPiece(""); // close modal
+
+        checkGameOver(updatedBoard);
+    };
+
     const getBackground = (isWhiteSquare, row, col) => {
-        // if (availableMoves.some(move => move.row === row && move.col === col))
-        // {
-        //     return "bg-[#769656]";
-        // }
+        if (board[row][col] === PIECES.WHITE.KING && isWhiteKingChecked(board))
+            return "bg-red-500";
+        if (board[row][col] === PIECES.BLACK.KING && isBlackKingChecked(board))
+            return "bg-red-500";
         const shouldHover = (curTurn === "white" && whitePieceAvailable(row, col, board)) || (availableMoves.some((item) => item.row === row && item.col === col));
         if (row === activeSquare.row && col === activeSquare.col)
-            // return isWhiteSquare?"bg-gray-300":"bg-green-400";
             return `bg-[#fef08a] ${shouldHover && "hover:bg-[#fde047]"}`;
         else
             return isWhiteSquare ? `bg-[#f0d9b5] ${shouldHover && "hover:bg-[#e6cfa5]"}` : `bg-[#b58863] ${shouldHover && "hover:bg-[#a07556]"}`;
@@ -89,9 +126,11 @@ export default function Board() {
     }
     return (
         <div className="flex justify-center items-center flex-col h-[100vh]">
+            {promotionPiece && <PromotionModal curTurn={curTurn} handlePromotion={handlePromotion} />}
             <div className={`${curTurn === "white" ? "" : ""}`}>
                 {curTurn === "white" ? "White" : "Black"} {"'s turn"}
             </div>
+            <GameOverModal gameOver={gameOver} message={message} />
             <div className="flex md:flex-row flex-col gap-x-4">
                 <div className="flex flex-col">
                     {board.map((row, rowIndex) => (

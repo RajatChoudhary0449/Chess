@@ -76,16 +76,16 @@ export const getAllWhiteRook = (
     } else break;
   }
   for (let i = col - 1; i >= 0; i--) {
-    if (!pieceAvailable(row, i, board)) allMoves.push({ col: i, row });
+    if (!pieceAvailable(row, i, board)) allMoves.push({ row, col: i });
     else if (blackPieceAvailable(row, i, board)) {
-      allMoves.push({ row: i, col });
+      allMoves.push({ row, col: i });
       break;
     } else break;
   }
   for (let i = col + 1; i < 8; i++) {
-    if (!pieceAvailable(row, i, board)) allMoves.push({ col: i, row });
+    if (!pieceAvailable(row, i, board)) allMoves.push({ row, col: i });
     else if (blackPieceAvailable(row, i, board)) {
-      allMoves.push({ row: i, col });
+      allMoves.push({ row, col: i });
       break;
     } else break;
   }
@@ -114,16 +114,16 @@ export const getAllBlackRook = (
     } else break;
   }
   for (let i = col - 1; i >= 0; i--) {
-    if (!pieceAvailable(row, i, board)) allMoves.push({ col: i, row });
+    if (!pieceAvailable(row, i, board)) allMoves.push({ row, col: i });
     else if (whitePieceAvailable(row, i, board)) {
-      allMoves.push({ row: i, col });
+      allMoves.push({ row, col: i });
       break;
     } else break;
   }
   for (let i = col + 1; i < 8; i++) {
-    if (!pieceAvailable(row, i, board)) allMoves.push({ col: i, row });
+    if (!pieceAvailable(row, i, board)) allMoves.push({ row, col: i });
     else if (whitePieceAvailable(row, i, board)) {
-      allMoves.push({ row: i, col });
+      allMoves.push({ row, col: i });
       break;
     } else break;
   }
@@ -464,67 +464,67 @@ export const getAllWhiteMoves = (board, validateKingSafety = true) => {
     switch (it) {
       case PIECES.WHITE.PAWN:
         allAvailableMoves = allAvailableMoves.concat(
-          ...getPieceCoordinates(
-            PIECES.WHITE.PAWN,
-            board
-          ).map((item) =>
-            getAllWhitePawn({ row: item.row, col: item.col }, board,
-            validateKingSafety)
+          ...getPieceCoordinates(PIECES.WHITE.PAWN, board).map((item) =>
+            getAllWhitePawn(
+              { row: item.row, col: item.col },
+              board,
+              validateKingSafety
+            )
           )
         );
         break;
       case PIECES.WHITE.ROOK:
         allAvailableMoves = allAvailableMoves.concat(
-          ...getPieceCoordinates(
-            PIECES.WHITE.ROOK,
-            board
-          ).map((item) =>
-            getAllWhiteRook({ row: item.row, col: item.col }, board,
-            validateKingSafety)
+          ...getPieceCoordinates(PIECES.WHITE.ROOK, board).map((item) =>
+            getAllWhiteRook(
+              { row: item.row, col: item.col },
+              board,
+              validateKingSafety
+            )
           )
         );
         break;
       case PIECES.WHITE.KNIGHT:
         allAvailableMoves = allAvailableMoves.concat(
-          ...getPieceCoordinates(
-            PIECES.WHITE.KNIGHT,
-            board
-          ).map((item) =>
-            getAllWhiteKnight({ row: item.row, col: item.col }, board,
-            validateKingSafety)
+          ...getPieceCoordinates(PIECES.WHITE.KNIGHT, board).map((item) =>
+            getAllWhiteKnight(
+              { row: item.row, col: item.col },
+              board,
+              validateKingSafety
+            )
           )
         );
         break;
       case PIECES.WHITE.BISHOP:
         allAvailableMoves = allAvailableMoves.concat(
-          ...getPieceCoordinates(
-            PIECES.WHITE.BISHOP,
-            board
-          ).map((item) =>
-            getAllWhiteBishop({ row: item.row, col: item.col }, board,
-            validateKingSafety)
+          ...getPieceCoordinates(PIECES.WHITE.BISHOP, board).map((item) =>
+            getAllWhiteBishop(
+              { row: item.row, col: item.col },
+              board,
+              validateKingSafety
+            )
           )
         );
         break;
       case PIECES.WHITE.QUEEN:
         allAvailableMoves = allAvailableMoves.concat(
-          ...getPieceCoordinates(
-            PIECES.WHITE.QUEEN,
-            board
-          ).map((item) =>
-            getAllWhiteQueen({ row: item.row, col: item.col }, board,
-            validateKingSafety)
+          ...getPieceCoordinates(PIECES.WHITE.QUEEN, board).map((item) =>
+            getAllWhiteQueen(
+              { row: item.row, col: item.col },
+              board,
+              validateKingSafety
+            )
           )
         );
         break;
       case PIECES.WHITE.KING:
         allAvailableMoves = allAvailableMoves.concat(
-          ...getPieceCoordinates(
-            PIECES.WHITE.KING,
-            board
-          ).map((item) =>
-            getAllWhiteKing({ row: item.row, col: item.col }, board,
-            validateKingSafety)
+          ...getPieceCoordinates(PIECES.WHITE.KING, board).map((item) =>
+            getAllWhiteKing(
+              { row: item.row, col: item.col },
+              board,
+              validateKingSafety
+            )
           )
         );
         break;
@@ -558,67 +558,67 @@ export const getAllBlackMoves = (board, validateKingSafety = true) => {
     switch (it) {
       case PIECES.BLACK.PAWN:
         allAvailableMoves = allAvailableMoves.concat(
-          ...getPieceCoordinates(
-            PIECES.BLACK.PAWN,
-            board
-          ).map((item) =>
-            getAllBlackPawn({ row: item.row, col: item.col }, board,
-            validateKingSafety)
+          ...getPieceCoordinates(PIECES.BLACK.PAWN, board).map((item) =>
+            getAllBlackPawn(
+              { row: item.row, col: item.col },
+              board,
+              validateKingSafety
+            )
           )
         );
         break;
       case PIECES.BLACK.ROOK:
         allAvailableMoves = allAvailableMoves.concat(
-          ...getPieceCoordinates(
-            PIECES.BLACK.ROOK,
-            board
-          ).map((item) =>
-            getAllBlackRook({ row: item.row, col: item.col }, board,
-            validateKingSafety)
+          ...getPieceCoordinates(PIECES.BLACK.ROOK, board).map((item) =>
+            getAllBlackRook(
+              { row: item.row, col: item.col },
+              board,
+              validateKingSafety
+            )
           )
         );
         break;
       case PIECES.BLACK.KNIGHT:
         allAvailableMoves = allAvailableMoves.concat(
-          ...getPieceCoordinates(
-            PIECES.BLACK.KNIGHT,
-            board
-          ).map((item) =>
-            getAllBlackKnight({ row: item.row, col: item.col }, board,
-            validateKingSafety)
+          ...getPieceCoordinates(PIECES.BLACK.KNIGHT, board).map((item) =>
+            getAllBlackKnight(
+              { row: item.row, col: item.col },
+              board,
+              validateKingSafety
+            )
           )
         );
         break;
       case PIECES.BLACK.BISHOP:
         allAvailableMoves = allAvailableMoves.concat(
-          ...getPieceCoordinates(
-            PIECES.BLACK.BISHOP,
-            board
-          ).map((item) =>
-            getAllBlackBishop({ row: item.row, col: item.col }, board,
-            validateKingSafety)
+          ...getPieceCoordinates(PIECES.BLACK.BISHOP, board).map((item) =>
+            getAllBlackBishop(
+              { row: item.row, col: item.col },
+              board,
+              validateKingSafety
+            )
           )
         );
         break;
       case PIECES.BLACK.QUEEN:
         allAvailableMoves = allAvailableMoves.concat(
-          ...getPieceCoordinates(
-            PIECES.BLACK.QUEEN,
-            board
-          ).map((item) =>
-            getAllBlackQueen({ row: item.row, col: item.col }, board,
-            validateKingSafety)
+          ...getPieceCoordinates(PIECES.BLACK.QUEEN, board).map((item) =>
+            getAllBlackQueen(
+              { row: item.row, col: item.col },
+              board,
+              validateKingSafety
+            )
           )
         );
         break;
       case PIECES.BLACK.KING:
         allAvailableMoves = allAvailableMoves.concat(
-          ...getPieceCoordinates(
-            PIECES.BLACK.KING,
-            board
-          ).map((item) =>
-            getAllBlackKing({ row: item.row, col: item.col }, board,
-            validateKingSafety)
+          ...getPieceCoordinates(PIECES.BLACK.KING, board).map((item) =>
+            getAllBlackKing(
+              { row: item.row, col: item.col },
+              board,
+              validateKingSafety
+            )
           )
         );
         break;
@@ -647,10 +647,19 @@ export const isBlackKingChecked = (board) => {
     (item) => item.row === kingRow && item.col === kingCol
   );
 };
-export const playMove = (move, board) => {
+
+export const playMove = (move, board, promoteTo=null) => {
   const curBoard = [...board.map((item) => [...item])];
   const { from, to } = move;
-  curBoard[to.row][to.col] = board[from.row][from.col];
+
+  if(promoteTo)
+  {
+    curBoard[to.row][to.col] = promoteTo;
+  }
+  else
+  {
+    curBoard[to.row][to.col] = board[from.row][from.col];
+  }
   curBoard[from.row][from.col] = "";
   return curBoard;
 };
