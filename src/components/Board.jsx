@@ -29,8 +29,8 @@ export default function Board() {
             //Handle First White Tap
             if (whitePieceAvailable(row, col, board)) {
                 setActiveSquare({ row, col });
-                const moves = getAllPossibleMoves({ row, col, piece }, board);
-                setAvailableMoves(moves);
+                const availableMoves = getAllPossibleMoves({ row, col, piece }, board, moves);
+                setAvailableMoves(availableMoves);
                 return;
             }
         }
@@ -38,8 +38,8 @@ export default function Board() {
             //Handle First Black Tap
             if (blackPieceAvailable(row, col, board)) {
                 setActiveSquare({ row, col });
-                const moves = getAllPossibleMoves({ row, col, piece }, board);
-                setAvailableMoves(moves);
+                const availableMoves = getAllPossibleMoves({ row, col, piece }, board, moves);
+                setAvailableMoves(availableMoves);
                 return;
             }
         }
@@ -47,7 +47,6 @@ export default function Board() {
         if (isPlayable) {
             const isCaptured = (curTurn === "white" && blackPieceAvailable(row, col, board)) || (curTurn === "black" && whitePieceAvailable(row, col, board));
             const capturedPiece = isCaptured ? board[row][col] : null;
-            const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col }, isCaptured: isCaptured, capturedPiece: capturedPiece, turn: curTurn }
             //Check for promotion if any:
             const isPromotion =
                 (curTurn === "white" && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.PAWN && row === 0) ||
@@ -55,8 +54,9 @@ export default function Board() {
             if (isPromotion) {
                 setPromotionPiece({ move: curMove, turn: curTurn });
             }
-
-            const updatedBoard = playMove(curMove, board);
+            const isCastling = (curTurn === "white" && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.KING && Math.abs(activeSquare.col - col) === 2) || ((curTurn === "black" && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.KING && Math.abs(activeSquare.col - col) === 2))
+            const updatedBoard = isCastling ? playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board, null, true) : playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board);
+            const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCaptured: isCaptured, capturedPiece: capturedPiece, turn: curTurn, board: updatedBoard };
             setBoard(updatedBoard);
             setMoves([curMove, ...moves]);
             setCurTurn((cur) => cur === "white" ? "black" : "white");
@@ -124,35 +124,72 @@ export default function Board() {
         }
         return result;
     }
+    const handleMoveUndo = () => {
+        const curMoves = moves;
+        if (curMoves.length === 0) return;
+        setCurTurn(curTurn => curTurn === "white" ? "black" : "white");
+        setAvailableMoves([]);
+        setBoard(curMoves.length === 1 ? INITIALBOARDSETUP : curMoves[1].board);
+        setMoves(moves => moves.slice(1));
+    }
+    const handleResetGame = () => {
+        if (!window.confirm("Are you sure you want to restart the game?")) {
+            return;
+        }
+        setCurTurn("white");
+        setAvailableMoves([]);
+        setBoard(INITIALBOARDSETUP);
+        setMoves([]);
+    }
     return (
-        <div className="flex justify-center items-center flex-col h-[100vh]">
+        <div className="flex justify-center items-center flex-col h-[100vh] " style={{ backgroundImage: `url("/icon.jpeg")` }}>
             {promotionPiece && <PromotionModal curTurn={curTurn} handlePromotion={handlePromotion} />}
-            <div className={`${curTurn === "white" ? "" : ""}`}>
-                {curTurn === "white" ? "White" : "Black"} {"'s turn"}
-            </div>
             <GameOverModal gameOver={gameOver} message={message} />
-            <div className="flex md:flex-row flex-col gap-x-4">
-                <div className="flex flex-col">
-                    {board.map((row, rowIndex) => (
-                        <div key={rowIndex} className="flex justify-center items-center cursor-pointer">
-                            <div className="mr-2">{8 - rowIndex}</div>
-                            {row.map((item, colIndex) => {
-                                const piece = mapSymbolToPiece(item);
-                                const isWhiteSquare = (rowIndex + colIndex) % 2 == 0;
-                                const isAvailableMove = availableMoves.some(move => move.row === rowIndex && move.col === colIndex);
-                                const isActiveSquare = activeSquare.row === rowIndex && activeSquare.col === colIndex;
-                                return (<button key={`${rowIndex},${colIndex}`} onClick={() => { handleClick({ row: rowIndex, col: colIndex, piece: item }) }} className={`max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] md:h-[100px] w-[50px] h-[50px] flex justify-center items-center ${getBackground(isWhiteSquare, rowIndex, colIndex)}`}>
-                                    {piece ? <img src={piece} className={`w-[80%]  transition-transform duration-300 ease-in-out ${isAvailableMove && "border border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} /> : isAvailableMove && <div className="w-[30%] h-[30%] bg-[#769656] rounded-full"></div>}
-                                </button>)
-                            })}
+            <div className="flex md:flex-row flex-col gap-x-4 gap-y-4">
+                <div className="flex flex-col gap-y-2">
+
+                    <div className="flex justify-center">
+                        <div className="w-fit bg-[#e0c097]/90 flex justify-center gap-x-2 py-2 px-2">
+                            <div className={`w-[20px] h-[20px] rounded-full ${curTurn === "white" ? "bg-white border-black" : "bg-black border-white "}`}></div>
+                            {curTurn === "white" ? "White" : "Black"}{`'s turn`}
                         </div>
-                    ))}
-                    <div className="flex justify-center text-center ml-4">{Array.from({ length: 8 }, (_, i) => (String.fromCharCode('a'.charCodeAt(0) + i)
-                    )).map((item, index) => (<span key={index} className="max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] w-[50px]">{item}</span>))}</div>
+                    </div>
+                    <div className="flex flex-col">
+                        {board.map((row, rowIndex) => (
+                            <div key={rowIndex} className="flex justify-center items-center cursor-pointer">
+                                {row.map((item, colIndex) => {
+                                    const piece = mapSymbolToPiece(item);
+                                    const isWhiteSquare = (rowIndex + colIndex) % 2 == 0;
+                                    const isAvailableMove = availableMoves.some(move => move.row === rowIndex && move.col === colIndex);
+                                    const isActiveSquare = activeSquare.row === rowIndex && activeSquare.col === colIndex;
+                                    return (<button key={`${rowIndex},${colIndex}`} onClick={() => { handleClick({ row: rowIndex, col: colIndex, piece: item }) }} className={`max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] md:h-[100px] w-[50px] h-[50px] flex justify-center items-center relative ${getBackground(isWhiteSquare, rowIndex, colIndex)} ${isWhiteSquare ? "text-[#5c3a1e]" : "text-[#fdf6e3]"} md:text-[16px] text-[10px]`}>
+                                        {colIndex === 0 && <div className="absolute md:left-1 md:top-1 left-0.5 top-0.5">{8 - rowIndex}</div>}
+                                        {rowIndex === 7 && <div className="absolute md:right-1 ,md:bottom-1 right-0.5 bottom-0.5">{String.fromCharCode('a'.charCodeAt(0) + colIndex)}</div>}
+                                        {piece ? <img src={piece} className={`w-[80%]  transition-transform duration-300 ease-in-out ${isAvailableMove && "border border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} /> : isAvailableMove && <div className="w-[30%] h-[30%] bg-[#769656] rounded-full"></div>}
+                                    </button>)
+                                })}
+                            </div>
+                        ))}
+                        {/* <div className="flex justify-center text-center ml-4">{Array.from({ length: 8 }, (_, i) => (String.fromCharCode('a'.charCodeAt(0) + i)
+                    )).map((item, index) => (<span key={index} className="max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] w-[50px]">{item}</span>))}</div> */}
+                    </div>
                 </div>
-                <div className="">
-                    <ul>
-                        {moves.map((cur, index) => (<li key={index}>{cur.turn} played {encode(cur.from.row, cur.from.col)} to {encode(cur.to.row, cur.to.col)}</li>))}
+                <div className="md:w-[190px] w-[90%] mx-auto px-4 max-h-[80%] bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 md:mt-12">
+                    <ul className="flex flex-col gap-2">
+                        <li className="flex flex-row gap-2">
+                            <div className="flex items-center">Move List</div>
+                            {moves.length > 0 &&
+                                <div className="flex gap-x-2 text-white">
+                                    <button onClick={handleMoveUndo} className="bg-amber-400 p-2 rounded-[4px]" >
+                                        <i className="fas fa-undo" title="Undo"></i></button>
+                                    <button onClick={handleResetGame} className="bg-red-500 p-2 rounded-[4px]">
+                                        <i className="fas fa-refresh" title="Refresh"></i></button>
+                                </div>
+                            }</li>
+                        {moves.map((cur, index) => (<li key={index} className="flex gap-x-2 items-center">
+                            <div>{moves.length-index}</div>
+                            <div className={`w-[20px] h-[20px] ${cur.turn==="white"?"bg-white":"bg-black"} shadow-2xl rounded-full`}></div>
+                            played {encode(cur.from.row, cur.from.col)} to {encode(cur.to.row, cur.to.col)}</li>))}
                     </ul>
                 </div>
             </div>
