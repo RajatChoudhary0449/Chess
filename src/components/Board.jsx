@@ -63,22 +63,23 @@ export default function Board() {
             if (getAllWhiteMoves(updatedBoard).length === 0) {
                 if (isWhiteKingChecked(updatedBoard)) {
                     setMessage("Black wins!!!");
+                    setGameOver(true);
                 }
-                else {
+                else if (curTurn === "white") {
                     setMessage("Draw by stalemate");
+                    setGameOver(true);
                 }
-                setGameOver(true);
             }
             if (getAllBlackMoves(updatedBoard).length === 0) {
                 if (isBlackKingChecked(updatedBoard)) {
                     setMessage("White wins!!!");
+                    setGameOver(true);
                 }
-                else {
+                else if (curTurn === "black") {
                     setMessage("Draw by stalemate");
+                    setGameOver(true);
                 }
-                setGameOver(true);
             }
-
         }
         setActiveSquare({ row: null, col: null });
         setAvailableMoves([]);
@@ -99,12 +100,11 @@ export default function Board() {
             return "bg-red-500";
         if (board[row][col] === PIECES.BLACK.KING && isBlackKingChecked(board))
             return "bg-red-500";
-        const lastMove=moves.length>0 ? moves[0]:null;
+        const lastMove = moves.length > 0 ? moves[0] : null;
         const shouldHover = (curTurn === "white" && whitePieceAvailable(row, col, board)) || (availableMoves.some((item) => item.row === row && item.col === col));
-        
-        if(lastMove && ((lastMove.from.row===row && lastMove.from.col===col)|| lastMove.to.row===row && lastMove.to.col===col))
-        {
-            return `bg-amber-300 ${shouldHover&& "hover:bg-amber-400"}`
+
+        if (lastMove && ((lastMove.from.row === row && lastMove.from.col === col) || lastMove.to.row === row && lastMove.to.col === col)) {
+            return `${isWhiteSquare ? "bg-amber-300" : "bg-amber-400"}`;
         }
         if (row === activeSquare.row && col === activeSquare.col)
             return `bg-yellow-200 ${shouldHover && "hover:bg-[#fde047]"}`;
@@ -169,9 +169,13 @@ export default function Board() {
                                     const isAvailableMove = availableMoves.some(move => move.row === rowIndex && move.col === colIndex);
                                     const isActiveSquare = activeSquare.row === rowIndex && activeSquare.col === colIndex;
                                     return (<button key={`${rowIndex},${colIndex}`} onClick={() => { handleClick({ row: rowIndex, col: colIndex, piece: item }) }} className={`max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] md:h-[100px] w-[50px] h-[50px] flex justify-center items-center relative ${getBackground(isWhiteSquare, rowIndex, colIndex)} ${isWhiteSquare ? "text-[#5c3a1e]" : "text-[#fdf6e3]"} md:text-[16px] text-[10px]`}>
+
                                         {colIndex === 0 && <div className="absolute md:left-1 md:top-1 left-0.5 top-0.5">{8 - rowIndex}</div>}
+
                                         {rowIndex === 7 && <div className="absolute md:right-1 ,md:bottom-1 right-0.5 bottom-0.5">{String.fromCharCode('a'.charCodeAt(0) + colIndex)}</div>}
-                                        {piece ? <img src={piece} className={`w-[80%]  transition-transform duration-300 ease-in-out ${isAvailableMove && "border-6 border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} /> : isAvailableMove && <div className="w-[30%] h-[30%] bg-[#769656] rounded-full"></div>}
+
+                                        {piece ? <img src={piece} className={`w-[90%]  transition-transform duration-300 ease-in-out mb-2 
+                                            ${isAvailableMove && "border-6 !mb-0 border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} /> : isAvailableMove && <div className="w-[30%] h-[30%] bg-[#769656] rounded-full"></div>}
                                     </button>)
                                 })}
                             </div>
