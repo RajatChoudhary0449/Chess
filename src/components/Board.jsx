@@ -19,7 +19,7 @@ export default function Board() {
     const [activeSquare, setActiveSquare] = useState({ row: null, col: null });
     const [curTurn, setCurTurn] = useState("white");
     const [availableMoves, setAvailableMoves] = useState([]);
-    const [promotionPiece, setPromotionPiece] = useState("");
+    const [promotionPiece, setPromotionPiece] = useState(null);
     const [gameOver, setGameOver] = useState(false);
     const [board, setBoard] = useState(INITIALBOARDSETUP);
     const [moves, setMoves] = useState([]);
@@ -51,38 +51,45 @@ export default function Board() {
             const isPromotion =
                 (curTurn === "white" && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.PAWN && row === 0) ||
                 (curTurn === "black" && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.PAWN && row === 7);
-            if (isPromotion) {
-                setPromotionPiece({ move: curMove, turn: curTurn });
-            }
             const isCastling = (curTurn === "white" && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.KING && Math.abs(activeSquare.col - col) === 2) || ((curTurn === "black" && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.KING && Math.abs(activeSquare.col - col) === 2))
             const updatedBoard = isCastling ? playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board, null, true) : playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board);
             const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCaptured: isCaptured, capturedPiece: capturedPiece, turn: curTurn, board: updatedBoard };
+            if (isPromotion) {
+                setPromotionPiece({ move: curMove, turn: curTurn });
+            }
+            else setPromotionPiece(null);
+
             setBoard(updatedBoard);
-            setMoves([curMove, ...moves]);
+            if (!isPromotion) setMoves([curMove, ...moves]);
             setCurTurn((cur) => cur === "white" ? "black" : "white");
-            if (getAllWhiteMoves(updatedBoard).length === 0) {
-                if (isWhiteKingChecked(updatedBoard)) {
-                    setMessage("Black wins!!!");
-                    setGameOver(true);
-                }
-                else if (curTurn === "white") {
-                    setMessage("Draw by stalemate");
-                    setGameOver(true);
-                }
-            }
-            if (getAllBlackMoves(updatedBoard).length === 0) {
-                if (isBlackKingChecked(updatedBoard)) {
-                    setMessage("White wins!!!");
-                    setGameOver(true);
-                }
-                else if (curTurn === "black") {
-                    setMessage("Draw by stalemate");
-                    setGameOver(true);
-                }
-            }
+            checkGameOver(updatedBoard);
+
         }
         setActiveSquare({ row: null, col: null });
         setAvailableMoves([]);
+    }
+    const checkGameOver = (updatedBoard) => {
+        if (getAllWhiteMoves(updatedBoard).length === 0) {
+            if (isWhiteKingChecked(updatedBoard)) {
+                setMessage("Black wins!!!");
+                setGameOver(true);
+            }
+            else if (curTurn === "white") {
+                setMessage("Draw by stalemate");
+                setGameOver(true);
+            }
+        }
+        if (getAllBlackMoves(updatedBoard).length === 0) {
+            if (isBlackKingChecked(updatedBoard)) {
+                setMessage("White wins!!!");
+                setGameOver(true);
+            }
+            else if (curTurn === "black") {
+                setMessage("Draw by stalemate");
+                setGameOver(true);
+            }
+        }
+        return false;
     }
     const handlePromotion = (piece) => {
         const { move, turn } = promotionPiece;
@@ -90,8 +97,7 @@ export default function Board() {
         setBoard(updatedBoard);
         setMoves([move, ...moves]);
         setCurTurn(turn === "white" ? "black" : "white");
-        setPromotionPiece(""); // close modal
-
+        setPromotionPiece(null); // close modal
         checkGameOver(updatedBoard);
     };
 
@@ -151,9 +157,8 @@ export default function Board() {
         <div className="flex justify-center items-center flex-col h-[100dvh]" style={{ backgroundImage: `url("/icon.jpeg")` }}>
             {promotionPiece && <PromotionModal curTurn={curTurn} handlePromotion={handlePromotion} />}
             <GameOverModal gameOver={gameOver} message={message} />
-            <div className="flex md:flex-row flex-col gap-x-4 gap-y-4">
+            <div className="flex md:flex-row flex-col md:gap-x-2 lg:gap-x-4 gap-y-4">
                 <div className="flex flex-col gap-y-2">
-
                     <div className="flex justify-center">
                         <div className="w-fit bg-[#e0c097]/90 flex justify-center gap-x-2 py-2 px-2">
                             <div className={`w-[20px] h-[20px] rounded-full ${curTurn === "white" ? "bg-white border-black" : "bg-black border-white "}`}></div>
@@ -168,7 +173,7 @@ export default function Board() {
                                     const isWhiteSquare = (rowIndex + colIndex) % 2 == 0;
                                     const isAvailableMove = availableMoves.some(move => move.row === rowIndex && move.col === colIndex);
                                     const isActiveSquare = activeSquare.row === rowIndex && activeSquare.col === colIndex;
-                                    return (<button key={`${rowIndex},${colIndex}`} onClick={() => { handleClick({ row: rowIndex, col: colIndex, piece: item }) }} className={`max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] md:h-[100px] w-[50px] h-[50px] flex justify-center items-center relative ${getBackground(isWhiteSquare, rowIndex, colIndex)} ${isWhiteSquare ? "text-[#5c3a1e]" : "text-[#fdf6e3]"} md:text-[16px] text-[10px]`}>
+                                    return (<button key={`${rowIndex},${colIndex}`} onClick={() => { handleClick({ row: rowIndex, col: colIndex, piece: item }) }} className={`max-h-[min(11vh,11vw)] max-w-[min(11vh,11vw)] md:w-[min(10vh,10vw)] md:h-[min(10vh,10vw)] lg:w-[min(11vh,11vw)] lg:h-[min(11vh,11vw)] w-[50px] h-[50px] flex justify-center items-center relative ${getBackground(isWhiteSquare, rowIndex, colIndex)} ${isWhiteSquare ? "text-[#5c3a1e]" : "text-[#fdf6e3]"} md:text-[16px] text-[10px]`}>
 
                                         {colIndex === 0 && <div className="absolute md:left-1 md:top-1 left-0.5 top-0.5">{8 - rowIndex}</div>}
 
@@ -184,10 +189,8 @@ export default function Board() {
                     )).map((item, index) => (<span key={index} className="max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] w-[50px]">{item}</span>))}</div> */}
                     </div>
                 </div>
-                <div className="h-[300px] md:h-[80vh] w-full">
-
-                    <div className="md:w-[220px] w-[90%] mx-auto px-4 h-full bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 md:mt-12 rounded-md shadow-md flex flex-col">
-
+                <div className="h-[200px] md:h-[min(80vh,80vw)] lg:h-[min(88vh,88vw)] md:max-h-[min(80vh,80vw)] lg:max-h-[min(88vh,88vw)] w-full">
+                    <div className="md:w-full md:max-w-[220px] md:min-w-[200px] w-[90%] mx-auto px-4 h-full bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 md:mt-12 rounded-md shadow-md flex flex-col">
                         <div className="flex justify-between items-center mb-2">
                             <div className="font-semibold">Move List</div>
                             {moves.length > 0 && (
@@ -201,7 +204,7 @@ export default function Board() {
                                 </div>
                             )}
                         </div>
-                        <ul className="flex flex-col gap-2 overflow-y-auto h-[300px] md:h-[500px]">
+                        <ul className="flex flex-col gap-2 overflow-y-auto h-full">
                             {moves.map((cur, index) => (
                                 <li key={index} className="flex gap-x-2 items-center text-sm pb-1">
                                     <div className="w-[20px] text-center">{moves.length - index}</div>
