@@ -37,7 +37,12 @@ export default function Board() {
         const onGameFull = () => {
             console.log("Game is full, kindly disconnect");
         };
-
+        const onGameState = ({ board, moves }) => {
+            console.log(board,moves);
+            setMoves(_ => moves);
+            setBoard(_ => board);
+            setCurTurn(moves.length % 2 === 0 ? "white" : "black");
+        }
         const onOpponentMove = (move) => {
             if (move.turn === playerColor) return; // Prevent duplicate move
             setMoves((moves) => [move, ...moves]);
@@ -51,13 +56,14 @@ export default function Board() {
         socket.on("player_assignment", onPlayerAssignment);
         socket.on("game_full", onGameFull);
         socket.on("opponent_move", onOpponentMove);
-
+        socket.on("game_state", onGameState);
         return () => {
             socket.off("player_assignment", onPlayerAssignment);
             socket.off("game_full", onGameFull);
             socket.off("opponent_move", onOpponentMove);
+            socket.off("game_state", onGameState);
         };
-    }, [playerColor]);
+    }, []);
 
 
     const handleClick = ({ row, col, piece }) => {

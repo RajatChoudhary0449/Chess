@@ -1,6 +1,7 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const { INITIALBOARDSETUP } = require("../src/constants/constants");
 
 const app = express();
 const server = http.createServer(app);
@@ -12,19 +13,25 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
+let gameState={
+    board:INITIALBOARDSETUP,
+    player1:null,
+    player2:null,
+    moves:[]
+}
 
-let player1 = null;
-let player2 = null;
 // Handle connections
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id,player1?.id,player2?.id);
-  if (!player1) {
-    player1 = socket;
+  console.log("User connected:", socket.id,gameState?.player1,gameState?.player2);
+  if (!gameState.player1) {
+    gameState.player1 = socket.id;
     socket.emit("player_assignment", "white");
+    socket.emit("game_state",gameState);
     console.log("Assigned as Player 1 (White):", socket.id);
-  } else if (!player2) {
-    player2 = socket;
+  } else if (!gameState.player2) {
+    gameState.player2 = socket.id;
     socket.emit("player_assignment", "black");
+    socket.emit("game_state",gameState);
     console.log("Assigned as Player 2 (Black):", socket.id);
   } else {
     // Reject third+ player
@@ -33,28 +40,27 @@ io.on("connection", (socket) => {
     return;
   }
 
-
   // Receive move and send to opponent
   socket.on("make_move", ({move}) => {
-    const opponent=(socket===player1?player2:player1);
+    const opponent=io.sockets.sockets.get(socket.id===gameState.player1?gameState.player2:gameState.player1);
     if(opponent)
     {
         opponent.emit("opponent_move",move);
     }
+    gameState.moves=[move,...gameState.moves];
+    gameState.board=move.board;
   });
 
   // Handle disconnection
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
-    player1=null;
-    player2=null;
-    // if (socket === player1) {
-    //   player1 = null;
-    //   console.log("Player 1 disconnected");
-    // } else if (socket === player2) {
-    //   player2 = null;
-    //   console.log("Player 2 disconnected");
-    // }
+    if (socket.id === gameState.player1) {
+      gameState.player1 = null;
+      console.log("Player 1 disconnected");
+    } else if (socket.id === gameState.player2) {
+      gameState.player2 = null;
+      console.log("Player 2 disconnected");
+    }
   });
 });
 
