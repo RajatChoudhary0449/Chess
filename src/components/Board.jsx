@@ -10,7 +10,8 @@ import whiteBishop from "../assets/whiteBishop.png";
 import whiteQueen from "../assets/whiteQueen.png";
 import whiteKing from "../assets/whiteKing.png";
 import whitePawn from "../assets/whitePawn.png";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import socket from "../socket.js";
 import { blackPieceAvailable, encode, getAllBlackMoves, getAllPossibleMoves, getAllWhiteMoves, isBlackKingChecked, isWhiteKingChecked, playMove, whitePieceAvailable } from "../utils/CommonFunctions.js"
 import { INITIALBOARDSETUP, PIECES } from "../constants/constants.js";
 import GameOverModal from "./GameOverModal.jsx";
@@ -24,7 +25,44 @@ export default function Board() {
     const [board, setBoard] = useState(INITIALBOARDSETUP);
     const [moves, setMoves] = useState([]);
     const [message, setMessage] = useState("");
+    const [playerColor, setPlayerColor] = useState(null);
+    useEffect(() => {
+        if (!socket.connected) socket.connect();
+
+        const onPlayerAssignment = (color) => {
+            console.log("color", color);
+            setPlayerColor(color);
+        };
+
+        const onGameFull = () => {
+            console.log("Game is full, kindly disconnect");
+        };
+
+        const onOpponentMove = (move) => {
+            if (move.turn === playerColor) return; // Prevent duplicate move
+            setMoves((moves) => [move, ...moves]);
+            const nextTurn = move.turn === "white" ? "black" : "white";
+            setCurTurn(() => nextTurn);
+            setBoard((board) => playMove(move, board));
+        };
+
+        socket.on("player_assignment", onPlayerAssignment);
+        socket.on("game_full", onGameFull);
+        socket.on("opponent_move", onOpponentMove);
+
+        return () => {
+            socket.off("player_assignment", onPlayerAssignment);
+            socket.off("game_full", onGameFull);
+            socket.off("opponent_move", onOpponentMove);
+        };
+    }, [playerColor]);
+
+
     const handleClick = ({ row, col, piece }) => {
+        if (playerColor !== curTurn) {
+            console.log("It's not your turn so please wait, you are ", playerColor);
+            return;
+        }
         if (curTurn === "white") {
             //Handle First White Tap
             if (whitePieceAvailable(row, col, board)) {
@@ -60,10 +98,12 @@ export default function Board() {
             else setPromotionPiece(null);
 
             setBoard(updatedBoard);
-            if (!isPromotion) setMoves([curMove, ...moves]);
+            if (!isPromotion) {
+                setMoves([curMove, ...moves]);
+                socket.emit("make_move", { move: curMove });
+            }
             setCurTurn((cur) => cur === "white" ? "black" : "white");
             checkGameOver(updatedBoard);
-
         }
         setActiveSquare({ row: null, col: null });
         setAvailableMoves([]);
