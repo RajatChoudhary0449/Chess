@@ -26,6 +26,7 @@ export default function Board() {
     const [moves, setMoves] = useState([]);
     const [message, setMessage] = useState("");
     const [playerColor, setPlayerColor] = useState(null);
+    const [spectatorMode,setSpectatorMode]=useState(false); //To Do
     useEffect(() => {
         if (!socket.connected) socket.connect();
 
@@ -33,15 +34,18 @@ export default function Board() {
             console.log("color", color);
             setPlayerColor(color);
         };
-
+        const onOpponentJoin=(message)=>{
+            alert(message);
+        }
         const onGameFull = () => {
-            console.log("Game is full, kindly disconnect");
+            setSpectatorMode(true);
+            alert("A match is already running, have a seat and enjoy the match");
         };
+
         const onGameState = ({ board, moves }) => {
-            console.log(board,moves);
             setMoves(_ => moves);
             setBoard(_ => board);
-            setCurTurn(moves.length % 2 === 0 ? "white" : "black");
+            setCurTurn(moves?.length % 2 === 0 ? "white" : "black");
         }
         const onOpponentMove = (move) => {
             if (move.turn === playerColor) return; // Prevent duplicate move
@@ -57,20 +61,18 @@ export default function Board() {
         socket.on("game_full", onGameFull);
         socket.on("opponent_move", onOpponentMove);
         socket.on("game_state", onGameState);
+        socket.on("opponent_join", onOpponentJoin);
         return () => {
             socket.off("player_assignment", onPlayerAssignment);
             socket.off("game_full", onGameFull);
             socket.off("opponent_move", onOpponentMove);
             socket.off("game_state", onGameState);
+            socket.off("opponent_join", onOpponentJoin);
         };
     }, []);
 
 
     const handleClick = ({ row, col, piece }) => {
-        if (playerColor !== curTurn) {
-            console.log("It's not your turn so please wait, you are ", playerColor);
-            return;
-        }
         if (curTurn === "white") {
             //Handle First White Tap
             if (whitePieceAvailable(row, col, board)) {
@@ -207,7 +209,7 @@ export default function Board() {
             {!playerColor
                 && <div className="text-white text-[34px] p-2 bg-amber-400 rounded-2xl">Please wait while we assign game to you...</div>
             }
-            {playerColor &&
+            {playerColor && 
                 <>
                     <GameOverModal gameOver={gameOver} message={message} />
                     <div className="flex md:flex-row flex-col md:gap-x-2 lg:gap-x-4 gap-y-4">
@@ -216,18 +218,18 @@ export default function Board() {
                                 <div className={`flex-col w-fit bg-[#e0c097]/90 flex justify-center gap-x-2 py-2 px-2 ${playerColor === "white" ? "text-white" : "text-black"}`}>
                                     <div className={`flex gap-x-2`}>
                                         <div className={` w-[20px] h-[20px] rounded-full ${playerColor === "white" ? "bg-white border-black" : "bg-black border-white "}`}></div>
-                                        <div>
+                                        <div className={`${spectatorMode?"hidden":""}`}>
                                             You are {playerColor?.slice(0, 1).toUpperCase() + playerColor?.slice(1)}
                                         </div>
                                     </div>
-                                    <div className={`${curTurn == playerColor && "transition animate-pulse duration-300"}`}>
+                                    <div className={`${curTurn == playerColor && "transition animate-pulse duration-300"} ${spectatorMode&&"hidden"}`}>
                                         {
                                             curTurn === playerColor ? "Play your move..." : "Kindly wait for your opponent move"
                                         }
                                     </div>
                                 </div>
                             </div>
-                            <div className={`flex flex-col ${curTurn !== playerColor && "pointer-events-none"}`}>
+                            <div className={`flex flex-col ${curTurn !== playerColor && "pointer-events-none"} ${spectatorMode && "pointer-events-none"}`}>
                                 {board.map((row, rowIndex) => (
                                     <div key={rowIndex} className="flex justify-center items-center cursor-pointer">
                                         {row.map((item, colIndex) => {
@@ -247,8 +249,6 @@ export default function Board() {
                                         })}
                                     </div>
                                 ))}
-                                {/* <div className="flex justify-center text-center ml-4">{Array.from({ length: 8 }, (_, i) => (String.fromCharCode('a'.charCodeAt(0) + i)
-                    )).map((item, index) => (<span key={index} className="max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] w-[50px]">{item}</span>))}</div> */}
                             </div>
                         </div>
                         <div className="h-[200px] md:h-[min(80vh,80vw)] lg:h-[min(88vh,88vw)] md:max-h-[min(80vh,80vw)] lg:max-h-[min(88vh,88vw)] w-full">
@@ -257,10 +257,10 @@ export default function Board() {
                                     <div className="font-semibold">Move List</div>
                                     {moves.length > 0 && (
                                         <div className="flex gap-x-2 text-white">
-                                            <button onClick={handleMoveUndo} className="bg-amber-400 p-2 rounded-[4px]">
+                                            <button onClick={handleMoveUndo} className="bg-amber-400 p-2 rounded-[4px]" disabled={!spectatorMode}>
                                                 <i className="fas fa-undo" title="Undo"></i>
                                             </button>
-                                            <button onClick={handleResetGame} className="bg-red-500 p-2 rounded-[4px]">
+                                            <button onClick={handleResetGame} className="bg-red-500 p-2 rounded-[4px]" disabled={!spectatorMode}>
                                                 <i className="fas fa-refresh" title="Refresh"></i>
                                             </button>
                                         </div>

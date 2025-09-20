@@ -32,11 +32,14 @@ io.on("connection", (socket) => {
     gameState.player2 = socket.id;
     socket.emit("player_assignment", "black");
     socket.emit("game_state",gameState);
+    if(gameState.player1)
+    {
+      socket.emit("opponent_join","Your opponent has joined");
+    }
     console.log("Assigned as Player 2 (Black):", socket.id);
   } else {
     // Reject third+ player
     socket.emit("game_full");
-    socket.disconnect();
     return;
   }
 
@@ -47,6 +50,7 @@ io.on("connection", (socket) => {
     {
         opponent.emit("opponent_move",move);
     }
+    console.log(move);
     gameState.moves=[move,...gameState.moves];
     gameState.board=move.board;
   });
@@ -56,9 +60,19 @@ io.on("connection", (socket) => {
     console.log("User disconnected:", socket.id);
     if (socket.id === gameState.player1) {
       gameState.player1 = null;
+      if(!gameState.player2)
+      {
+        gameState.board=INITIALBOARDSETUP;
+        moves=[];
+      }
       console.log("Player 1 disconnected");
     } else if (socket.id === gameState.player2) {
       gameState.player2 = null;
+      if(!gameState.player2)
+      {
+        gameState.board=INITIALBOARDSETUP;
+        moves=[];
+      }
       console.log("Player 2 disconnected");
     }
   });
