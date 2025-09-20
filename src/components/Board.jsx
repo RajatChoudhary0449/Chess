@@ -43,7 +43,9 @@ export default function Board() {
             setMoves((moves) => [move, ...moves]);
             const nextTurn = move.turn === "white" ? "black" : "white";
             setCurTurn(() => nextTurn);
-            setBoard((board) => playMove(move, board));
+            const updatedBoard = move.board;
+            setBoard(_ => updatedBoard);
+            checkGameOver(updatedBoard);
         };
 
         socket.on("player_assignment", onPlayerAssignment);
@@ -91,7 +93,7 @@ export default function Board() {
                 (curTurn === "black" && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.PAWN && row === 7);
             const isCastling = (curTurn === "white" && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.KING && Math.abs(activeSquare.col - col) === 2) || ((curTurn === "black" && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.KING && Math.abs(activeSquare.col - col) === 2))
             const updatedBoard = isCastling ? playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board, null, true) : playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board);
-            const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCaptured: isCaptured, capturedPiece: capturedPiece, turn: curTurn, board: updatedBoard };
+            const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCaptured: isCaptured, capturedPiece: capturedPiece, isCastling, isPromotion, turn: curTurn, board: updatedBoard };
             if (isPromotion) {
                 setPromotionPiece({ move: curMove, turn: curTurn });
             }
@@ -196,66 +198,82 @@ export default function Board() {
     return (
         <div className="flex justify-center items-center flex-col h-[100dvh]" style={{ backgroundImage: `url("/icon.jpeg")` }}>
             {promotionPiece && <PromotionModal curTurn={curTurn} handlePromotion={handlePromotion} />}
-            <GameOverModal gameOver={gameOver} message={message} />
-            <div className="flex md:flex-row flex-col md:gap-x-2 lg:gap-x-4 gap-y-4">
-                <div className="flex flex-col gap-y-2">
-                    <div className="flex justify-center">
-                        <div className="w-fit bg-[#e0c097]/90 flex justify-center gap-x-2 py-2 px-2">
-                            <div className={`w-[20px] h-[20px] rounded-full ${curTurn === "white" ? "bg-white border-black" : "bg-black border-white "}`}></div>
-                            {curTurn === "white" ? "White" : "Black"}{`'s turn`}
-                        </div>
-                    </div>
-                    <div className="flex flex-col">
-                        {board.map((row, rowIndex) => (
-                            <div key={rowIndex} className="flex justify-center items-center cursor-pointer">
-                                {row.map((item, colIndex) => {
-                                    const piece = mapSymbolToPiece(item);
-                                    const isWhiteSquare = (rowIndex + colIndex) % 2 == 0;
-                                    const isAvailableMove = availableMoves.some(move => move.row === rowIndex && move.col === colIndex);
-                                    const isActiveSquare = activeSquare.row === rowIndex && activeSquare.col === colIndex;
-                                    return (<button key={`${rowIndex},${colIndex}`} onClick={() => { handleClick({ row: rowIndex, col: colIndex, piece: item }) }} className={`max-h-[min(11vh,11vw)] max-w-[min(11vh,11vw)] md:w-[min(10vh,10vw)] md:h-[min(10vh,10vw)] lg:w-[min(11vh,11vw)] lg:h-[min(11vh,11vw)] w-[50px] h-[50px] flex justify-center items-center relative ${getBackground(isWhiteSquare, rowIndex, colIndex)} ${isWhiteSquare ? "text-[#5c3a1e]" : "text-[#fdf6e3]"} md:text-[16px] text-[10px]`}>
-
-                                        {colIndex === 0 && <div className="absolute md:left-1 md:top-1 left-0.5 top-0.5">{8 - rowIndex}</div>}
-
-                                        {rowIndex === 7 && <div className="absolute md:right-1 ,md:bottom-1 right-0.5 bottom-0.5">{String.fromCharCode('a'.charCodeAt(0) + colIndex)}</div>}
-
-                                        {piece ? <img src={piece} className={`w-[90%]  transition-transform duration-300 ease-in-out mb-2 
-                                            ${isAvailableMove && "border-6 !mb-0 border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} /> : isAvailableMove && <div className="w-[30%] h-[30%] bg-[#769656] rounded-full"></div>}
-                                    </button>)
-                                })}
-                            </div>
-                        ))}
-                        {/* <div className="flex justify-center text-center ml-4">{Array.from({ length: 8 }, (_, i) => (String.fromCharCode('a'.charCodeAt(0) + i)
-                    )).map((item, index) => (<span key={index} className="max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] w-[50px]">{item}</span>))}</div> */}
-                    </div>
-                </div>
-                <div className="h-[200px] md:h-[min(80vh,80vw)] lg:h-[min(88vh,88vw)] md:max-h-[min(80vh,80vw)] lg:max-h-[min(88vh,88vw)] w-full">
-                    <div className="md:w-full md:max-w-[220px] md:min-w-[200px] w-[90%] mx-auto px-4 h-full bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 md:mt-12 rounded-md shadow-md flex flex-col">
-                        <div className="flex justify-between items-center mb-2">
-                            <div className="font-semibold">Move List</div>
-                            {moves.length > 0 && (
-                                <div className="flex gap-x-2 text-white">
-                                    <button onClick={handleMoveUndo} className="bg-amber-400 p-2 rounded-[4px]">
-                                        <i className="fas fa-undo" title="Undo"></i>
-                                    </button>
-                                    <button onClick={handleResetGame} className="bg-red-500 p-2 rounded-[4px]">
-                                        <i className="fas fa-refresh" title="Refresh"></i>
-                                    </button>
+            {!playerColor
+                && <div className="text-white text-[34px] p-2 bg-amber-400 rounded-2xl">Please wait while we assign game to you...</div>
+            }
+            {playerColor &&
+                <>
+                    <GameOverModal gameOver={gameOver} message={message} />
+                    <div className="flex md:flex-row flex-col md:gap-x-2 lg:gap-x-4 gap-y-4">
+                        <div className="flex flex-col gap-y-2">
+                            <div className="flex justify-center">
+                                <div className={`flex-col w-fit bg-[#e0c097]/90 flex justify-center gap-x-2 py-2 px-2 ${playerColor === "white" ? "text-white" : "text-black"}`}>
+                                    <div className={`flex gap-x-2`}>
+                                        <div className={` w-[20px] h-[20px] rounded-full ${playerColor === "white" ? "bg-white border-black" : "bg-black border-white "}`}></div>
+                                        <div>
+                                            You are {playerColor?.slice(0, 1).toUpperCase() + playerColor?.slice(1)}
+                                        </div>
+                                    </div>
+                                    <div className={`${curTurn == playerColor && "transition animate-pulse duration-300"}`}>
+                                        {
+                                            curTurn === playerColor ? "Play your move..." : "Kindly wait for your opponent move"
+                                        }
+                                    </div>
                                 </div>
-                            )}
+                            </div>
+                            <div className={`flex flex-col ${curTurn !== playerColor && "pointer-events-none"}`}>
+                                {board.map((row, rowIndex) => (
+                                    <div key={rowIndex} className="flex justify-center items-center cursor-pointer">
+                                        {row.map((item, colIndex) => {
+                                            const piece = mapSymbolToPiece(item);
+                                            const isWhiteSquare = (rowIndex + colIndex) % 2 == 0;
+                                            const isAvailableMove = availableMoves.some(move => move.row === rowIndex && move.col === colIndex);
+                                            const isActiveSquare = activeSquare.row === rowIndex && activeSquare.col === colIndex;
+                                            return (<button key={`${rowIndex},${colIndex}`} onClick={() => { curTurn === playerColor && handleClick({ row: rowIndex, col: colIndex, piece: item }) }} className={`max-h-[min(11vh,11vw)] max-w-[min(11vh,11vw)] md:w-[min(10vh,10vw)] md:h-[min(10vh,10vw)] lg:w-[min(11vh,11vw)] lg:h-[min(11vh,11vw)] w-[50px] h-[50px] flex justify-center items-center relative ${getBackground(isWhiteSquare, rowIndex, colIndex)} ${isWhiteSquare ? "text-[#5c3a1e]" : "text-[#fdf6e3]"} md:text-[16px] text-[10px]`}>
+
+                                                {colIndex === 0 && <div className="absolute md:left-1 md:top-1 left-0.5 top-0.5">{8 - rowIndex}</div>}
+
+                                                {rowIndex === 7 && <div className="absolute md:right-1 ,md:bottom-1 right-0.5 bottom-0.5">{String.fromCharCode('a'.charCodeAt(0) + colIndex)}</div>}
+
+                                                {piece ? <img src={piece} className={`w-[90%]  transition-transform duration-300 ease-in-out mb-2 
+                                            ${isAvailableMove && "border-6 !mb-0 border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} /> : isAvailableMove && <div className="w-[30%] h-[30%] bg-[#769656] rounded-full"></div>}
+                                            </button>)
+                                        })}
+                                    </div>
+                                ))}
+                                {/* <div className="flex justify-center text-center ml-4">{Array.from({ length: 8 }, (_, i) => (String.fromCharCode('a'.charCodeAt(0) + i)
+                    )).map((item, index) => (<span key={index} className="max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[100px] w-[50px]">{item}</span>))}</div> */}
+                            </div>
                         </div>
-                        <ul className="flex flex-col gap-2 overflow-y-auto h-full">
-                            {moves.map((cur, index) => (
-                                <li key={index} className="flex gap-x-2 items-center text-sm pb-1">
-                                    <div className="w-[20px] text-center">{moves.length - index}</div>
-                                    <div className={`w-[20px] h-[20px] ${cur.turn === "white" ? "bg-white" : "bg-black"} shadow-md rounded-full`}></div>
-                                    <span>played {encode(cur.from.row, cur.from.col)} → {encode(cur.to.row, cur.to.col)}</span>
-                                </li>
-                            ))}
-                        </ul>
+                        <div className="h-[200px] md:h-[min(80vh,80vw)] lg:h-[min(88vh,88vw)] md:max-h-[min(80vh,80vw)] lg:max-h-[min(88vh,88vw)] w-full">
+                            <div className="md:w-full md:max-w-[220px] md:min-w-[200px] w-[90%] mx-auto px-4 h-full bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 md:mt-18 rounded-md shadow-md flex flex-col">
+                                <div className="flex justify-between items-center mb-2">
+                                    <div className="font-semibold">Move List</div>
+                                    {moves.length > 0 && (
+                                        <div className="flex gap-x-2 text-white">
+                                            <button onClick={handleMoveUndo} className="bg-amber-400 p-2 rounded-[4px]">
+                                                <i className="fas fa-undo" title="Undo"></i>
+                                            </button>
+                                            <button onClick={handleResetGame} className="bg-red-500 p-2 rounded-[4px]">
+                                                <i className="fas fa-refresh" title="Refresh"></i>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                                <ul className="flex flex-col gap-2 overflow-y-auto h-full">
+                                    {moves.map((cur, index) => (
+                                        <li key={index} className="flex gap-x-2 items-center text-sm pb-1">
+                                            <div className="w-[20px] text-center">{moves.length - index}</div>
+                                            <div className={`w-[20px] h-[20px] ${cur.turn === "white" ? "bg-white" : "bg-black"} shadow-md rounded-full`}></div>
+                                            <span>played {encode(cur.from.row, cur.from.col)} → {encode(cur.to.row, cur.to.col)}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </>
+            }
         </div >
     );
 }

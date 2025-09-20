@@ -46,13 +46,15 @@ io.on("connection", (socket) => {
   // Handle disconnection
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
-    if (socket === player1) {
-      player1 = null;
-      console.log("Player 1 disconnected");
-    } else if (socket === player2) {
-      player2 = null;
-      console.log("Player 2 disconnected");
-    }
+    player1=null;
+    player2=null;
+    // if (socket === player1) {
+    //   player1 = null;
+    //   console.log("Player 1 disconnected");
+    // } else if (socket === player2) {
+    //   player2 = null;
+    //   console.log("Player 2 disconnected");
+    // }
   });
 });
 
