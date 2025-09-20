@@ -26,21 +26,22 @@ export default function Board() {
     const [moves, setMoves] = useState([]);
     const [message, setMessage] = useState("");
     const [playerColor, setPlayerColor] = useState(null);
-    const [spectatorMode,setSpectatorMode]=useState(false); //To Do
+    const [spectatorMode, setSpectatorMode] = useState(false); //To Do
     useEffect(() => {
         if (!socket.connected) socket.connect();
-
         const onPlayerAssignment = (color) => {
             console.log("color", color);
-            setPlayerColor(color);
+            if (color === "spectator") {
+                setSpectatorMode(true);
+                alert("A match is already running, have a seat and enjoy the match");
+            }
+            else {
+                setPlayerColor(color);
+            }
         };
-        const onOpponentJoin=(message)=>{
+        const onOpponentJoin = (message) => {
             alert(message);
         }
-        const onGameFull = () => {
-            setSpectatorMode(true);
-            alert("A match is already running, have a seat and enjoy the match");
-        };
 
         const onGameState = ({ board, moves }) => {
             setMoves(_ => moves);
@@ -58,13 +59,11 @@ export default function Board() {
         };
 
         socket.on("player_assignment", onPlayerAssignment);
-        socket.on("game_full", onGameFull);
         socket.on("opponent_move", onOpponentMove);
         socket.on("game_state", onGameState);
         socket.on("opponent_join", onOpponentJoin);
         return () => {
             socket.off("player_assignment", onPlayerAssignment);
-            socket.off("game_full", onGameFull);
             socket.off("opponent_move", onOpponentMove);
             socket.off("game_state", onGameState);
             socket.off("opponent_join", onOpponentJoin);
@@ -123,20 +122,24 @@ export default function Board() {
             if (isWhiteKingChecked(updatedBoard)) {
                 setMessage("Black wins!!!");
                 setGameOver(true);
+                socket.emit("game_over");
             }
             else if (curTurn === "white") {
                 setMessage("Draw by stalemate");
                 setGameOver(true);
+                socket.emit("game_over");
             }
         }
         if (getAllBlackMoves(updatedBoard).length === 0) {
             if (isBlackKingChecked(updatedBoard)) {
                 setMessage("White wins!!!");
                 setGameOver(true);
+                socket.emit("game_over");
             }
             else if (curTurn === "black") {
                 setMessage("Draw by stalemate");
                 setGameOver(true);
+                socket.emit("game_over");
             }
         }
         return false;
@@ -206,10 +209,10 @@ export default function Board() {
     return (
         <div className="flex justify-center items-center flex-col h-[100dvh]" style={{ backgroundImage: `url("/icon.jpeg")` }}>
             {promotionPiece && <PromotionModal curTurn={curTurn} handlePromotion={handlePromotion} />}
-            {!playerColor
+            {!playerColor && !spectatorMode
                 && <div className="text-white text-[34px] p-2 bg-amber-400 rounded-2xl">Please wait while we assign game to you...</div>
             }
-            {playerColor && 
+            {(playerColor || spectatorMode) &&
                 <>
                     <GameOverModal gameOver={gameOver} message={message} />
                     <div className="flex md:flex-row flex-col md:gap-x-2 lg:gap-x-4 gap-y-4">
@@ -217,12 +220,12 @@ export default function Board() {
                             <div className="flex justify-center">
                                 <div className={`flex-col w-fit bg-[#e0c097]/90 flex justify-center gap-x-2 py-2 px-2 ${playerColor === "white" ? "text-white" : "text-black"}`}>
                                     <div className={`flex gap-x-2`}>
-                                        <div className={` w-[20px] h-[20px] rounded-full ${playerColor === "white" ? "bg-white border-black" : "bg-black border-white "}`}></div>
-                                        <div className={`${spectatorMode?"hidden":""}`}>
+                                        <div className={` w-[20px] h-[20px] rounded-full ${spectatorMode && curTurn === "white" ? "bg-white border-black" : "bg-black border-white "} ${!spectatorMode && playerColor === "white" ? "bg-white border-black" : "bg-black border-white "}`}></div>
+                                        <div className={`${spectatorMode ? "hidden" : ""}`}>
                                             You are {playerColor?.slice(0, 1).toUpperCase() + playerColor?.slice(1)}
                                         </div>
                                     </div>
-                                    <div className={`${curTurn == playerColor && "transition animate-pulse duration-300"} ${spectatorMode&&"hidden"}`}>
+                                    <div className={`${curTurn == playerColor && "transition animate-pulse duration-300"} ${spectatorMode && "hidden"}`}>
                                         {
                                             curTurn === playerColor ? "Play your move..." : "Kindly wait for your opponent move"
                                         }
@@ -252,15 +255,15 @@ export default function Board() {
                             </div>
                         </div>
                         <div className="h-[200px] md:h-[min(80vh,80vw)] lg:h-[min(88vh,88vw)] md:max-h-[min(80vh,80vw)] lg:max-h-[min(88vh,88vw)] w-full">
-                            <div className="md:w-full md:max-w-[220px] md:min-w-[200px] w-[90%] mx-auto px-4 h-full bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 md:mt-18 rounded-md shadow-md flex flex-col">
+                            <div className={`md:w-full md:max-w-[220px] md:min-w-[200px] w-[90%] mx-auto px-4 h-full bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 ${spectatorMode ? "md:mt-11":"md:mt-18"} rounded-md shadow-md flex flex-col`}>
                                 <div className="flex justify-between items-center mb-2">
                                     <div className="font-semibold">Move List</div>
                                     {moves.length > 0 && (
                                         <div className="flex gap-x-2 text-white">
-                                            <button onClick={handleMoveUndo} className="bg-amber-400 p-2 rounded-[4px]" disabled={!spectatorMode}>
+                                            <button onClick={handleMoveUndo} className="bg-amber-400 p-2 rounded-[4px]" disabled={spectatorMode}>
                                                 <i className="fas fa-undo" title="Undo"></i>
                                             </button>
-                                            <button onClick={handleResetGame} className="bg-red-500 p-2 rounded-[4px]" disabled={!spectatorMode}>
+                                            <button onClick={handleResetGame} className="bg-red-500 p-2 rounded-[4px]" disabled={spectatorMode}>
                                                 <i className="fas fa-refresh" title="Refresh"></i>
                                             </button>
                                         </div>
