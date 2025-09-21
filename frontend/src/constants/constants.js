@@ -16,6 +16,8 @@ export const PIECES = {
     PAWN: "P",
   },
 };
+export const WHITE="white";
+export const BLACK="black";
 export const INITIALBOARDSETUP = [
   [PIECES.BLACK.ROOK, PIECES.BLACK.KNIGHT, PIECES.BLACK.BISHOP, PIECES.BLACK.QUEEN, PIECES.BLACK.KING, PIECES.BLACK.BISHOP, PIECES.BLACK.KNIGHT, PIECES.BLACK.ROOK],
   Array.from({ length: 8 }, () => PIECES.BLACK.PAWN),

@@ -12,13 +12,13 @@ import whiteKing from "../assets/whiteKing.png";
 import whitePawn from "../assets/whitePawn.png";
 import { useState, useEffect } from "react";
 import socket from "../socket.js";
-import { blackPieceAvailable, encode, flipBoard, getAllBlackMoves, getAllPossibleMoves, getAllWhiteMoves, isBlackKingChecked, isWhiteKingChecked, playMove, whitePieceAvailable } from "../utils/CommonFunctions.js"
-import { INITIALBOARDSETUP, PIECES } from "../constants/constants.js";
+import { blackPieceAvailable, encode, flipBoard, getAllBlackMoves, getAllPossibleMoves, getAllWhiteMoves, isBlackKingChecked, isWhiteKingChecked, playMove, whitePieceAvailable,flip,flipCoordinates,flipTurn,areCoordinatesEqual,addMove } from "../utils/CommonFunctions.js"
+import { BLACK, INITIALBOARDSETUP, PIECES, WHITE } from "../constants/constants.js";
 import GameOverModal from "./GameOverModal.jsx";
 import PromotionModal from "./PromotionModal.jsx";
 export default function Board() {
     const [activeSquare, setActiveSquare] = useState({ row: null, col: null });
-    const [curTurn, setCurTurn] = useState("white");
+    const [curTurn, setCurTurn] = useState(WHITE);
     const [availableMoves, setAvailableMoves] = useState([]);
     const [promotionPiece, setPromotionPiece] = useState(null);
     const [gameOver, setGameOver] = useState(false);
@@ -27,7 +27,7 @@ export default function Board() {
     const [message, setMessage] = useState("");
     const [playerColor, setPlayerColor] = useState(null);
     const [spectatorMode, setSpectatorMode] = useState(false); //To Do
-    const flipped = playerColor === "black";
+    const flipped = playerColor === BLACK;
     const renderBoard = flipped ? flipBoard(board) : board;
     useEffect(() => {
         if (!socket.connected) socket.connect();
@@ -49,7 +49,7 @@ export default function Board() {
             setMoves(_ => moves);
             const updatedBoard = moves.length > 0 ? moves[0].board : INITIALBOARDSETUP;
             setBoard(_ => updatedBoard);
-            setCurTurn(moves?.length % 2 === 0 ? "white" : "black");
+            setCurTurn(moves?.length % 2 === 0 ? WHITE : BLACK);
         }
         const onOpponentMove = (move) => {
             if (move.turn === playerColor) return; // Prevent duplicate move
@@ -58,7 +58,7 @@ export default function Board() {
                 applyPromotion(move);
                 return;
             }
-            const nextTurn = move.turn === "white" ? "black" : "white";
+            const nextTurn = flipTurn(move.turn);
             setCurTurn(() => nextTurn);
             const updatedBoard = move.board;
             setBoard(_ => updatedBoard);
@@ -79,7 +79,8 @@ export default function Board() {
 
 
     const handleClick = ({ row, col, piece }) => {
-        if (curTurn === "white") {
+        const coordinate = { row, col };
+        if (curTurn === WHITE) {
             //Handle First White Tap
             if (whitePieceAvailable(row, col, board)) {
                 setActiveSquare({ row, col });
@@ -89,7 +90,7 @@ export default function Board() {
                 return;
             }
         }
-        if (curTurn === "black") {
+        if (curTurn === BLACK) {
             //Handle First Black Tap
             if (blackPieceAvailable(row, col, board)) {
                 setActiveSquare({ row, col });
@@ -99,17 +100,19 @@ export default function Board() {
                 return;
             }
         }
-        const isPlayable = availableMoves.some(move => move.row === (flipped ? flip(row) : row) && move.col === (flipped ? flip(col) : col));
+        const isPlayable = availableMoves.some(move => areCoordinatesEqual(move, flipped ? flipCoordinates(coordinate) : coordinate));
+
         if (isPlayable) {
-            const isCaptured = (curTurn === "white" && blackPieceAvailable(row, col, board)) || (curTurn === "black" && whitePieceAvailable(row, col, board));
+            const isCaptured = (curTurn === WHITE && blackPieceAvailable(row, col, board)) || (curTurn === BLACK && whitePieceAvailable(row, col, board));
             const capturedPiece = isCaptured ? board[row][col] : null;
-            //Check for promotion if any:
             const isPromotion =
-                (curTurn === "white" && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.PAWN && row === 0) ||
-                (curTurn === "black" && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.PAWN && row === 7);
-            const isCastling = (curTurn === "white" && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.KING && Math.abs(activeSquare.col - col) === 2) || ((curTurn === "black" && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.KING && Math.abs(activeSquare.col - col) === 2))
+                (curTurn === WHITE && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.PAWN && row === 0) ||
+                (curTurn === BLACK && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.PAWN && row === 7);
+            const isCastling = (curTurn === WHITE && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.KING && Math.abs(activeSquare.col - col) === 2) || ((curTurn === BLACK && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.KING && Math.abs(activeSquare.col - col) === 2));
             const updatedBoard = isCastling ? playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board, null, true) : playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board);
+
             const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCaptured: isCaptured, promotedTo: null, capturedPiece: capturedPiece, isCastling, isPromotion, turn: curTurn, board: updatedBoard };
+            
             if (isPromotion) {
                 setPromotionPiece({ move: curMove, turn: curTurn });
             }
@@ -120,7 +123,7 @@ export default function Board() {
                 setMoves([curMove, ...moves]);
                 socket.emit("make_move", { move: curMove });
             }
-            setCurTurn((cur) => cur === "white" ? "black" : "white");
+            setCurTurn(cur => flipTurn(cur));
             checkGameOver(updatedBoard);
         }
         setActiveSquare({ row: null, col: null });
@@ -133,7 +136,7 @@ export default function Board() {
                 setGameOver(true);
                 socket.emit("game_over");
             }
-            else if (curTurn === "white") {
+            else if (curTurn === WHITE) {
                 setMessage("Draw by stalemate");
                 setGameOver(true);
                 socket.emit("game_over");
@@ -145,7 +148,7 @@ export default function Board() {
                 setGameOver(true);
                 socket.emit("game_over");
             }
-            else if (curTurn === "black") {
+            else if (curTurn === BLACK) {
                 setMessage("Draw by stalemate");
                 setGameOver(true);
                 socket.emit("game_over");
@@ -156,7 +159,7 @@ export default function Board() {
     const applyPromotion = (move) => {
         const updatedBoard = move.board;
         setBoard(updatedBoard);
-        setCurTurn(move.turn === "white" ? "black" : "white");
+        setCurTurn(flipTurn(move.turn));
         checkGameOver(updatedBoard);
     }
     const handlePromotion = (piece) => {
@@ -165,30 +168,25 @@ export default function Board() {
         const updatedBoard = playMove(move, board, piece);
         setBoard(updatedBoard);
         move.board = updatedBoard;
-        setMoves((moves) => [move, ...moves]);
-        setCurTurn(turn === "white" ? "black" : "white");
+        setMoves(moves => addMove(move, moves));
+        setCurTurn(flipTurn(turn));
         setPromotionPiece(null); // close modal
         socket.emit("make_move", { move });
         checkGameOver(updatedBoard);
     };
-    const flip = (entity) => {
-        return 7 - entity;
-    }
-    const flipCoordinates = ({ row, col }) => {
-        return { row: flip(row), col: flip(col) };
-    }
     const getBackground = (isWhiteSquare, row, col) => {
+        const coordinate = { row, col };
         if (board[row][col] === PIECES.WHITE.KING && isWhiteKingChecked(board))
             return "bg-red-500";
         if (board[row][col] === PIECES.BLACK.KING && isBlackKingChecked(board))
             return "bg-red-500";
         const lastMove = moves.length > 0 ? moves[0] : null;
-        const shouldHover = (curTurn === "white" && whitePieceAvailable(row, col, board)) || (availableMoves.some((item) => item.row === row && item.col === col));
+        const shouldHover = (curTurn === WHITE && whitePieceAvailable(row, col, board)) || (availableMoves.some((item) => areCoordinatesEqual(item, coordinate)));
 
-        if (lastMove && ((lastMove.from.row === row && lastMove.from.col === col) || lastMove.to.row === row && lastMove.to.col === col)) {
+        if (lastMove && (areCoordinatesEqual(lastMove.from, coordinate) || areCoordinatesEqual(lastMove.to, coordinate))) {
             return `${isWhiteSquare ? "bg-amber-300" : "bg-amber-400"}`;
         }
-        if (row === activeSquare.row && col === activeSquare.col)
+        if (areCoordinatesEqual(coordinate, activeSquare))
             return `bg-yellow-200 ${shouldHover && "hover:bg-[#fde047]"}`;
         else
             return isWhiteSquare ? `bg-[#f0d9b5] ${shouldHover && "hover:bg-[#e6cfa5]"}` : `bg-[#b58863] ${shouldHover && "hover:bg-[#a07556]"}`;
@@ -196,18 +194,18 @@ export default function Board() {
     const mapSymbolToPiece = (symbol) => {
         let result = null;
         switch (symbol) {
-            case 'r': result = blackRook; break;
-            case 'n': result = blackKnight; break;
-            case 'b': result = blackBishop; break;
-            case 'q': result = blackQueen; break;
-            case 'k': result = blackKing; break;
-            case 'p': result = blackPawn; break;
-            case 'R': result = whiteRook; break;
-            case 'N': result = whiteKnight; break;
-            case 'B': result = whiteBishop; break;
-            case 'Q': result = whiteQueen; break;
-            case 'K': result = whiteKing; break;
-            case 'P': result = whitePawn; break;
+            case PIECES.BLACK.ROOK: result = blackRook; break;
+            case PIECES.BLACK.KNIGHT: result = blackKnight; break;
+            case PIECES.BLACK.BISHOP: result = blackBishop; break;
+            case PIECES.BLACK.QUEEN: result = blackQueen; break;
+            case PIECES.BLACK.KING: result = blackKing; break;
+            case PIECES.BLACK.PAWN: result = blackPawn; break;
+            case PIECES.WHITE.ROOK: result = whiteRook; break;
+            case PIECES.WHITE.KNIGHT: result = whiteKnight; break;
+            case PIECES.WHITE.BISHOP: result = whiteBishop; break;
+            case PIECES.WHITE.QUEEN: result = whiteQueen; break;
+            case PIECES.WHITE.KING: result = whiteKing; break;
+            case PIECES.WHITE.PAWN: result = whitePawn; break;
             default: result = null;
         }
         return result;
@@ -215,7 +213,7 @@ export default function Board() {
     const handleMoveUndo = () => {
         const curMoves = moves;
         if (curMoves.length === 0) return;
-        setCurTurn(curTurn => curTurn === "white" ? "black" : "white");
+        setCurTurn(curTurn => flipTurn(curTurn));
         setAvailableMoves([]);
         setBoard(curMoves.length === 1 ? INITIALBOARDSETUP : curMoves[1].board);
         setMoves(moves => moves.slice(1));
@@ -224,7 +222,7 @@ export default function Board() {
         if (!window.confirm("Are you sure you want to restart the game?")) {
             return;
         }
-        setCurTurn("white");
+        setCurTurn(WHITE);
         setAvailableMoves([]);
         setBoard(INITIALBOARDSETUP);
         setMoves([]);
@@ -241,12 +239,12 @@ export default function Board() {
                     <div className="flex md:flex-row flex-col md:gap-x-2 lg:gap-x-4 gap-y-4">
                         <div className="flex flex-col gap-y-2">
                             <div className="flex justify-center">
-                                <div className={`flex-col rounded-2xl w-fit bg-[#e0c097]/90 flex justify-center gap-x-2 py-2 px-4 ${playerColor === "white" ? "text-white" : "text-black"}`}>
+                                <div className={`flex-col rounded-2xl w-fit bg-[#e0c097]/90 flex justify-center gap-x-2 py-2 px-4 ${playerColor === WHITE ? "text-white" : "text-black"}`}>
                                     <div className={`flex justify-center items-center gap-x-2`}>
                                         <div className={`${spectatorMode ? "hidden" : ""}`}>
                                             You are playing as
                                         </div>
-                                        <div className={`w-[20px] h-[20px] rounded-full ${spectatorMode && curTurn === "white" ? "bg-white border-black" : "bg-black border-white "} ${!spectatorMode && playerColor === "white" ? "bg-white border-black" : "bg-black border-white "}`}></div>
+                                        <div className={`w-[20px] h-[20px] rounded-full ${spectatorMode && curTurn === WHITE ? "bg-white border-black" : "bg-black border-white "} ${!spectatorMode && playerColor === WHITE ? "bg-white border-black" : "bg-black border-white "}`}></div>
 
                                     </div>
                                     <div className={`flex items-center gap-x-2 ${curTurn == playerColor && "transition animate-pulse duration-300"} ${spectatorMode && "hidden"}`}>
@@ -304,7 +302,7 @@ export default function Board() {
                                     {moves.map((cur, index) => (
                                         <li key={index} className="flex gap-x-2 items-center text-sm pb-1">
                                             <div className="w-[20px] text-center">{moves.length - index}</div>
-                                            <div className={`w-[20px] h-[20px] ${cur.turn === "white" ? "bg-white" : "bg-black"} shadow-md rounded-full`}></div>
+                                            <div className={`w-[20px] h-[20px] ${cur.turn === WHITE ? "bg-white" : "bg-black"} shadow-md rounded-full`}></div>
                                             <span>played {encode(cur.from.row, cur.from.col)} → {encode(cur.to.row, cur.to.col)}</span>
                                         </li>
                                     ))}
