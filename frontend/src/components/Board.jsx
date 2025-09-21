@@ -12,7 +12,7 @@ import whiteKing from "../assets/whiteKing.png";
 import whitePawn from "../assets/whitePawn.png";
 import { useState, useEffect } from "react";
 import socket from "../socket.js";
-import { blackPieceAvailable, encode, getAllBlackMoves, getAllPossibleMoves, getAllWhiteMoves, isBlackKingChecked, isWhiteKingChecked, playMove, whitePieceAvailable } from "../utils/CommonFunctions.js"
+import { blackPieceAvailable, encode, flipBoard, getAllBlackMoves, getAllPossibleMoves, getAllWhiteMoves, isBlackKingChecked, isWhiteKingChecked, playMove, whitePieceAvailable } from "../utils/CommonFunctions.js"
 import { INITIALBOARDSETUP, PIECES } from "../constants/constants.js";
 import GameOverModal from "./GameOverModal.jsx";
 import PromotionModal from "./PromotionModal.jsx";
@@ -27,6 +27,8 @@ export default function Board() {
     const [message, setMessage] = useState("");
     const [playerColor, setPlayerColor] = useState(null);
     const [spectatorMode, setSpectatorMode] = useState(false); //To Do
+    const flipped = playerColor === "black";
+    const renderBoard = flipped ? flipBoard(board) : board;
     useEffect(() => {
         if (!socket.connected) socket.connect();
         const onPlayerAssignment = (color) => {
@@ -45,7 +47,7 @@ export default function Board() {
 
         const onGameState = ({ moves }) => {
             setMoves(_ => moves);
-            const updatedBoard=moves.length>0?moves[0].board:INITIALBOARDSETUP;
+            const updatedBoard = moves.length > 0 ? moves[0].board : INITIALBOARDSETUP;
             setBoard(_ => updatedBoard);
             setCurTurn(moves?.length % 2 === 0 ? "white" : "black");
         }
@@ -77,8 +79,9 @@ export default function Board() {
             //Handle First White Tap
             if (whitePieceAvailable(row, col, board)) {
                 setActiveSquare({ row, col });
-                const availableMoves = getAllPossibleMoves({ row, col, piece }, board, moves);
-                setAvailableMoves(availableMoves);
+                let allPossibleMoves = getAllPossibleMoves({ row, col, piece }, board, moves);
+                if (flipped) allPossibleMoves=allPossibleMoves.map(item => flipCoordinates(item));
+                setAvailableMoves(allPossibleMoves);
                 return;
             }
         }
@@ -86,12 +89,13 @@ export default function Board() {
             //Handle First Black Tap
             if (blackPieceAvailable(row, col, board)) {
                 setActiveSquare({ row, col });
-                const availableMoves = getAllPossibleMoves({ row, col, piece }, board, moves);
-                setAvailableMoves(availableMoves);
+                let allPossibleMoves = getAllPossibleMoves({ row, col, piece }, board, moves);
+                if (flipped) allPossibleMoves=allPossibleMoves.map(item => flipCoordinates(item));
+                setAvailableMoves(allPossibleMoves);
                 return;
             }
         }
-        const isPlayable = availableMoves.some(move => move.row === row && move.col === col);
+        const isPlayable = availableMoves.some(move => move.row === (flipped?flip(row):row) && move.col === (flipped?flip(col):col));
         if (isPlayable) {
             const isCaptured = (curTurn === "white" && blackPieceAvailable(row, col, board)) || (curTurn === "black" && whitePieceAvailable(row, col, board));
             const capturedPiece = isCaptured ? board[row][col] : null;
@@ -154,7 +158,12 @@ export default function Board() {
         setPromotionPiece(null); // close modal
         checkGameOver(updatedBoard);
     };
-
+    const flip = (entity) => {
+        return 7 - entity;
+    }
+    const flipCoordinates = ({ row, col }) => {
+        return { row: flip(row), col: flip(col) };
+    }
     const getBackground = (isWhiteSquare, row, col) => {
         if (board[row][col] === PIECES.WHITE.KING && isWhiteKingChecked(board))
             return "bg-red-500";
@@ -234,18 +243,22 @@ export default function Board() {
                                 </div>
                             </div>
                             <div className={`flex flex-col ${curTurn !== playerColor && "pointer-events-none"} ${spectatorMode && "pointer-events-none"}`}>
-                                {board.map((row, rowIndex) => (
+                                {renderBoard.map((row, rowIndex) => (
                                     <div key={rowIndex} className="flex justify-center items-center cursor-pointer">
                                         {row.map((item, colIndex) => {
                                             const piece = mapSymbolToPiece(item);
                                             const isWhiteSquare = (rowIndex + colIndex) % 2 == 0;
                                             const isAvailableMove = availableMoves.some(move => move.row === rowIndex && move.col === colIndex);
-                                            const isActiveSquare = activeSquare.row === rowIndex && activeSquare.col === colIndex;
-                                            return (<button key={`${rowIndex},${colIndex}`} onClick={() => { curTurn === playerColor && handleClick({ row: rowIndex, col: colIndex, piece: item }) }} className={`max-h-[min(11vh,11vw)] max-w-[min(11vh,11vw)] md:w-[min(10vh,10vw)] md:h-[min(10vh,10vw)] lg:w-[min(11vh,11vw)] lg:h-[min(11vh,11vw)] w-[50px] h-[50px] flex justify-center items-center relative ${getBackground(isWhiteSquare, rowIndex, colIndex)} ${isWhiteSquare ? "text-[#5c3a1e]" : "text-[#fdf6e3]"} md:text-[16px] text-[10px]`}>
+                                            const isActiveSquare = activeSquare.row === flip(rowIndex) && activeSquare.col === flip(colIndex);
+                                            return (<button key={`${rowIndex},${colIndex}`} onClick={() => {
+                                                curTurn === playerColor && handleClick({ row: flipped ? flip(rowIndex) : rowIndex, col: flipped ? flip(colIndex) : colIndex, piece: flipped ? board[flip(rowIndex)][flip(colIndex)] : item })
+                                            }
+                                            }
+                                                className={`max-h-[min(11vh,11vw)] max-w-[min(11vh,11vw)] md:w-[min(10vh,10vw)] md:h-[min(10vh,10vw)] lg:w-[min(11vh,11vw)] lg:h-[min(11vh,11vw)] w-[50px] h-[50px] flex justify-center items-center relative ${getBackground(isWhiteSquare, flipped ? flip(rowIndex) : rowIndex, flipped ? flip(colIndex) : colIndex)} ${isWhiteSquare ? "text-[#5c3a1e]" : "text-[#fdf6e3]"} md:text-[16px] text-[10px]`}>
 
-                                                {colIndex === 0 && <div className="absolute md:left-1 md:top-1 left-0.5 top-0.5">{8 - rowIndex}</div>}
+                                                {colIndex === 0 && <div className="absolute md:left-1 md:top-1 left-0.5 top-0.5">{flipped ? (rowIndex + 1) : (8 - rowIndex)}</div>}
 
-                                                {rowIndex === 7 && <div className="absolute md:right-1 ,md:bottom-1 right-0.5 bottom-0.5">{String.fromCharCode('a'.charCodeAt(0) + colIndex)}</div>}
+                                                {rowIndex === 7 && <div className="absolute md:right-1 ,md:bottom-1 right-0.5 bottom-0.5">{flipped ? String.fromCharCode('a'.charCodeAt(0) + 7 - colIndex) : String.fromCharCode('a'.charCodeAt(0) + colIndex)}</div>}
 
                                                 {piece ? <img src={piece} className={`w-[90%]  transition-transform duration-300 ease-in-out mb-2 
                                             ${isAvailableMove && "border-6 !mb-0 border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} /> : isAvailableMove && <div className="w-[30%] h-[30%] bg-[#769656] rounded-full"></div>}
@@ -256,15 +269,15 @@ export default function Board() {
                             </div>
                         </div>
                         <div className="h-[200px] md:h-[min(80vh,80vw)] lg:h-[min(88vh,88vw)] md:max-h-[min(80vh,80vw)] lg:max-h-[min(88vh,88vw)] w-full">
-                            <div className={`md:w-full md:max-w-[220px] md:min-w-[200px] w-[90%] mx-auto px-4 h-full bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 ${spectatorMode ? "md:mt-11":"md:mt-18"} rounded-md shadow-md flex flex-col`}>
+                            <div className={`md:w-full md:max-w-[220px] md:min-w-[200px] w-[90%] mx-auto px-4 h-full bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 ${spectatorMode ? "md:mt-11" : "md:mt-18"} rounded-md shadow-md flex flex-col`}>
                                 <div className="flex justify-between items-center mb-2">
                                     <div className="font-semibold">Move List</div>
                                     {moves.length > 0 && (
                                         <div className="flex gap-x-2 text-white">
-                                            <button onClick={handleMoveUndo} className="bg-amber-400 p-2 rounded-[4px]" disabled={spectatorMode}>
+                                            <button onClick={handleMoveUndo} className="bg-amber-400 p-2 rounded-[4px]" disabled={spectatorMode || true}>
                                                 <i className="fas fa-undo" title="Undo"></i>
                                             </button>
-                                            <button onClick={handleResetGame} className="bg-red-500 p-2 rounded-[4px]" disabled={spectatorMode}>
+                                            <button onClick={handleResetGame} className="bg-red-500 p-2 rounded-[4px]" disabled={spectatorMode || true}>
                                                 <i className="fas fa-refresh" title="Refresh"></i>
                                             </button>
                                         </div>

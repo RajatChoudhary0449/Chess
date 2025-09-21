@@ -56,6 +56,9 @@ export const blackPieceAvailable = (row, col, board) => {
     board[row][col] === board[row][col].toLowerCase()
   );
 };
+export const flipBoard=(board)=>{
+  return [...board.map(item=>[...item].reverse())].reverse();
+}
 export const getAllWhiteRook = (
   { row, col },
   board,
