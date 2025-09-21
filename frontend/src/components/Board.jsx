@@ -54,6 +54,10 @@ export default function Board() {
         const onOpponentMove = (move) => {
             if (move.turn === playerColor) return; // Prevent duplicate move
             setMoves((moves) => [move, ...moves]);
+            if (move.isPromotion) {
+                applyPromotion(move);
+                return;
+            }
             const nextTurn = move.turn === "white" ? "black" : "white";
             setCurTurn(() => nextTurn);
             const updatedBoard = move.board;
@@ -80,7 +84,7 @@ export default function Board() {
             if (whitePieceAvailable(row, col, board)) {
                 setActiveSquare({ row, col });
                 let allPossibleMoves = getAllPossibleMoves({ row, col, piece }, board, moves);
-                if (flipped) allPossibleMoves=allPossibleMoves.map(item => flipCoordinates(item));
+                if (flipped) allPossibleMoves = allPossibleMoves.map(item => flipCoordinates(item));
                 setAvailableMoves(allPossibleMoves);
                 return;
             }
@@ -90,12 +94,12 @@ export default function Board() {
             if (blackPieceAvailable(row, col, board)) {
                 setActiveSquare({ row, col });
                 let allPossibleMoves = getAllPossibleMoves({ row, col, piece }, board, moves);
-                if (flipped) allPossibleMoves=allPossibleMoves.map(item => flipCoordinates(item));
+                if (flipped) allPossibleMoves = allPossibleMoves.map(item => flipCoordinates(item));
                 setAvailableMoves(allPossibleMoves);
                 return;
             }
         }
-        const isPlayable = availableMoves.some(move => move.row === (flipped?flip(row):row) && move.col === (flipped?flip(col):col));
+        const isPlayable = availableMoves.some(move => move.row === (flipped ? flip(row) : row) && move.col === (flipped ? flip(col) : col));
         if (isPlayable) {
             const isCaptured = (curTurn === "white" && blackPieceAvailable(row, col, board)) || (curTurn === "black" && whitePieceAvailable(row, col, board));
             const capturedPiece = isCaptured ? board[row][col] : null;
@@ -105,7 +109,7 @@ export default function Board() {
                 (curTurn === "black" && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.PAWN && row === 7);
             const isCastling = (curTurn === "white" && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.KING && Math.abs(activeSquare.col - col) === 2) || ((curTurn === "black" && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.KING && Math.abs(activeSquare.col - col) === 2))
             const updatedBoard = isCastling ? playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board, null, true) : playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board);
-            const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCaptured: isCaptured, capturedPiece: capturedPiece, isCastling, isPromotion, turn: curTurn, board: updatedBoard };
+            const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCaptured: isCaptured, promotedTo: null, capturedPiece: capturedPiece, isCastling, isPromotion, turn: curTurn, board: updatedBoard };
             if (isPromotion) {
                 setPromotionPiece({ move: curMove, turn: curTurn });
             }
@@ -149,13 +153,22 @@ export default function Board() {
         }
         return false;
     }
+    const applyPromotion = (move) => {
+        const updatedBoard = move.board;
+        setBoard(updatedBoard);
+        setCurTurn(move.turn === "white" ? "black" : "white");
+        checkGameOver(updatedBoard);
+    }
     const handlePromotion = (piece) => {
         const { move, turn } = promotionPiece;
+        move.promotedTo = piece;
         const updatedBoard = playMove(move, board, piece);
         setBoard(updatedBoard);
-        setMoves([move, ...moves]);
+        move.board = updatedBoard;
+        setMoves((moves) => [move, ...moves]);
         setCurTurn(turn === "white" ? "black" : "white");
         setPromotionPiece(null); // close modal
+        socket.emit("make_move", { move });
         checkGameOver(updatedBoard);
     };
     const flip = (entity) => {
@@ -220,7 +233,7 @@ export default function Board() {
         <div className="flex justify-center items-center flex-col h-[100dvh]" style={{ backgroundImage: `url("/icon.jpeg")` }}>
             {promotionPiece && <PromotionModal curTurn={curTurn} handlePromotion={handlePromotion} />}
             {!playerColor && !spectatorMode
-                && <div className="text-white text-[34px] p-2 bg-amber-400 rounded-2xl">Please wait while we assign game to you...</div>
+                && <div className="text-[#542c0b] text-[34px] p-2 bg-white opacity-75 rounded-2xl animate-bounce">Please wait while we assign game to you...</div>
             }
             {(playerColor || spectatorMode) &&
                 <>
@@ -228,17 +241,21 @@ export default function Board() {
                     <div className="flex md:flex-row flex-col md:gap-x-2 lg:gap-x-4 gap-y-4">
                         <div className="flex flex-col gap-y-2">
                             <div className="flex justify-center">
-                                <div className={`flex-col w-fit bg-[#e0c097]/90 flex justify-center gap-x-2 py-2 px-2 ${playerColor === "white" ? "text-white" : "text-black"}`}>
-                                    <div className={`flex gap-x-2`}>
-                                        <div className={` w-[20px] h-[20px] rounded-full ${spectatorMode && curTurn === "white" ? "bg-white border-black" : "bg-black border-white "} ${!spectatorMode && playerColor === "white" ? "bg-white border-black" : "bg-black border-white "}`}></div>
+                                <div className={`flex-col rounded-2xl w-fit bg-[#e0c097]/90 flex justify-center gap-x-2 py-2 px-4 ${playerColor === "white" ? "text-white" : "text-black"}`}>
+                                    <div className={`flex justify-center items-center gap-x-2`}>
                                         <div className={`${spectatorMode ? "hidden" : ""}`}>
-                                            You are {playerColor?.slice(0, 1).toUpperCase() + playerColor?.slice(1)}
+                                            You are playing as
                                         </div>
+                                        <div className={`w-[20px] h-[20px] rounded-full ${spectatorMode && curTurn === "white" ? "bg-white border-black" : "bg-black border-white "} ${!spectatorMode && playerColor === "white" ? "bg-white border-black" : "bg-black border-white "}`}></div>
+
                                     </div>
-                                    <div className={`${curTurn == playerColor && "transition animate-pulse duration-300"} ${spectatorMode && "hidden"}`}>
+                                    <div className={`flex items-center gap-x-2 ${curTurn == playerColor && "transition animate-pulse duration-300"} ${spectatorMode && "hidden"}`}>
                                         {
-                                            curTurn === playerColor ? "Play your move..." : "Kindly wait for your opponent move"
+                                            curTurn === playerColor ? "It's your turn!" : "Waiting for opponent..."
                                         }
+                                        <div className={`text-xl animate-spin`}>
+                                            {curTurn === playerColor ? "🟢" : "🕒"}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
