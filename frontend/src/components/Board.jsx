@@ -43,9 +43,10 @@ export default function Board() {
             alert(message);
         }
 
-        const onGameState = ({ board, moves }) => {
+        const onGameState = ({ moves }) => {
             setMoves(_ => moves);
-            setBoard(_ => board);
+            const updatedBoard=moves.length>0?moves[0].board:INITIALBOARDSETUP;
+            setBoard(_ => updatedBoard);
             setCurTurn(moves?.length % 2 === 0 ? "white" : "black");
         }
         const onOpponentMove = (move) => {

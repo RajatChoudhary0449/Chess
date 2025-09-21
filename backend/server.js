@@ -1,7 +1,6 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const { INITIALBOARDSETUP } = require("../frontend/src/constants/constants");
 const app = express();
 const server = http.createServer(app);
 
@@ -13,7 +12,6 @@ const io = new Server(server, {
   },
 });
 let gameState={
-    board:INITIALBOARDSETUP,
     player1:null,
     player2:null,
     moves:[]
@@ -61,11 +59,9 @@ io.on("connection", (socket) => {
       spectators=spectators.filter(id=>id!=it);
     }
     gameState.moves=[move,...gameState.moves];
-    gameState.board=move.board;
   });
 
   socket.on("game_over",()=>{
-    if(gameState.board!==INITIALBOARDSETUP) gameState.board=INITIALBOARDSETUP;
     if(gameState.player1) gameState.player1=null;
     if(gameState.player2) gameState.player2=null;
     if(gameState.moves) gameState.moves=[];
@@ -79,16 +75,14 @@ io.on("connection", (socket) => {
       gameState.player1 = null;
       if(!gameState.player2)
       {
-        gameState.board=INITIALBOARDSETUP;
-        moves=[];
+        gameState.moves=[];
       }
       console.log("Player 1 disconnected");
     } else if (socket.id === gameState.player2) {
       gameState.player2 = null;
       if(!gameState.player1)
       {
-        gameState.board=INITIALBOARDSETUP;
-        moves=[];
+        gameState.moves=[];
       }
       console.log("Player 2 disconnected");
     }
@@ -98,7 +92,6 @@ io.on("connection", (socket) => {
           spectators = spectators.filter(id => id !== socket.id);
           console.log("Spectator disconnected:", socket.id);
       }
-
     }
   });
 });
