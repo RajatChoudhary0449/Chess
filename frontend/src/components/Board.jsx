@@ -264,7 +264,7 @@ export default function Board() {
                                             const piece = mapSymbolToPiece(item);
                                             const isWhiteSquare = (rowIndex + colIndex) % 2 == 0;
                                             const isAvailableMove = availableMoves.some(move => move.row === rowIndex && move.col === colIndex);
-                                            const isActiveSquare = activeSquare.row === flip(rowIndex) && activeSquare.col === flip(colIndex);
+                                            const isActiveSquare = activeSquare.row === (flipped?flip(rowIndex):rowIndex) && activeSquare.col === (flipped?flip(colIndex):colIndex);
                                             return (<button key={`${rowIndex},${colIndex}`} onClick={() => {
                                                 curTurn === playerColor && handleClick({ row: flipped ? flip(rowIndex) : rowIndex, col: flipped ? flip(colIndex) : colIndex, piece: flipped ? board[flip(rowIndex)][flip(colIndex)] : item })
                                             }
