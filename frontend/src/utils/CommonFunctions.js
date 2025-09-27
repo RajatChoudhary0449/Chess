@@ -565,6 +565,36 @@ export const isBlackKingChecked = (board) => {
     areCoordinatesEqual(item, kingCoordinate)
   );
 };
+export const getLastMove = (moves) => {
+  return moves.length > 0 ? moves[0] : null;
+};
+export const checkGameOver = (updatedBoard) => {
+  if (getAllWhiteMoves(updatedBoard).length === 0) {
+    if (isWhiteKingChecked(updatedBoard)) {
+      socket.emit("game_over");
+      return { state: true, message: "Black wins!!!" };
+    } else if (curTurn === WHITE) {
+      setMessage("Draw by stalemate");
+      setGameOver(true);
+      socket.emit("game_over");
+      return { state: true, message: "Draw by stalemate" };
+    }
+  }
+  if (getAllBlackMoves(updatedBoard).length === 0) {
+    if (isBlackKingChecked(updatedBoard)) {
+      setMessage("White wins!!!");
+      setGameOver(true);
+      socket.emit("game_over");
+      return { state: true, message: "White wins!!!" };
+    } else if (curTurn === BLACK) {
+      setMessage("Draw by stalemate");
+      setGameOver(true);
+      socket.emit("game_over");
+      return { state: true, message: "Draw by stalemate" };
+    }
+  }
+  return { state: false, message: "" };
+};
 // export const canEnPassant=(lastMove,{curRow,curCol})=>{
 //   if(!lastMove) return false;
 //   return ((lastMove.piece===PIECES.WHITE.PAWN || lastMove.piece===PIECES.BLACK.PAWN) && Math.abs(lastMove.from.row-lastMove.to.row)===2 && Math.abs(lastMove.from.col-curCol)===1 &&

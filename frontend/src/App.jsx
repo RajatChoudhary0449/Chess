@@ -1,7 +1,10 @@
-import Board from "./components/Board"
+import Screen from "./components/Screen"
+import { GameProvider } from "./context/GameContext"
 function App() {
   return (
-    <Board/>
+    <GameProvider>
+      <Screen/>
+    </GameProvider>
   )
 }
 
