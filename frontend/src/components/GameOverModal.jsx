@@ -1,6 +1,4 @@
-import React from "react";
-
-function GameOverModal({ gameOver,message }) {
+function GameOverModal({ gameOver, message, viewBoard }) {
   return (
     <>
       {gameOver && (
@@ -10,12 +8,21 @@ function GameOverModal({ gameOver,message }) {
             <p className="text-lg mb-6">
               {message}
             </p>
-            <button
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-              onClick={() => window.location.reload()} // reload to reset game
-            >
-              Play Again
-            </button>
+            <div className="flex gap-x-2">
+              <button
+                className="bg-amber-400 hover:bg-amber-500 text-white px-4 py-2 rounded"
+                onClick={viewBoard}
+              >
+                View Board
+              </button>
+              <button
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                onClick={() => window.location.reload()} // reload to reset game
+              >
+                Play Again
+              </button>
+
+            </div>
           </div>
         </div>
       )}

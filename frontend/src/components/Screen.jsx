@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import socket from "../socket.js";
-import { encode, playMove, flipTurn, addMove, checkGameOver } from "../utils/CommonFunctions.js"
+import { playMove, flipTurn, addMove, checkGameOver, getLastMove } from "../utils/CommonFunctions.js"
 import { BLACK, INITIALBOARDSETUP, WHITE } from "../constants/constants.js";
 import GameOverModal from "./GameOverModal.jsx";
 import PromotionModal from "./PromotionModal.jsx";
@@ -9,7 +9,7 @@ import Board from "./Board";
 import InformationBlock from "./InformationBlock.jsx";
 import MoveList from "./MoveList.jsx";
 export default function Screen() {
-    const { curTurn, setCurTurn, setAvailableMoves, promotionPiece, setPromotionPiece, gameOver, setGameOver, board, setBoard, moves, setMoves, message, setMessage, playerColor, setPlayerColor, spectatorMode, setSpectatorMode } = useGame();
+    const { curTurn, setCurTurn, promotionPiece, setPromotionPiece, gameOver, setGameOver, board, setBoard, setMoves, message, setMessage, playerColor, setPlayerColor, spectatorMode, setSpectatorMode } = useGame();
     useEffect(() => {
         if (!socket.connected) socket.connect();
         const onPlayerAssignment = (color) => {
@@ -22,6 +22,19 @@ export default function Screen() {
                 setPlayerColor(color);
             }
         };
+        const onUndoMove = (moveList) => {
+            const lastMove = getLastMove(moveList);
+            if (moveList.length === 0) {
+                setBoard(INITIALBOARDSETUP);
+                setCurTurn(WHITE);
+                setMoves(moveList);
+            }
+            else {
+                setBoard(lastMove.board);
+                setCurTurn(moveList?.length % 2 === 0 ? WHITE : BLACK);
+                setMoves(moveList);
+            }
+        }
         const onOpponentJoin = (message) => {
             alert(message);
         }
@@ -51,11 +64,13 @@ export default function Screen() {
         socket.on("player_assignment", onPlayerAssignment);
         socket.on("opponent_move", onOpponentMove);
         socket.on("game_state", onGameState);
+        socket.on("undo_move", onUndoMove)
         socket.on("opponent_join", onOpponentJoin);
         return () => {
             socket.off("player_assignment", onPlayerAssignment);
             socket.off("opponent_move", onOpponentMove);
             socket.off("game_state", onGameState);
+            socket.off("undo_move", onUndoMove);
             socket.off("opponent_join", onOpponentJoin);
         };
     }, []);
@@ -83,7 +98,10 @@ export default function Screen() {
         setGameOver(state);
         setMessage(message);
     };
-
+    const viewBoard = () => {
+        setSpectatorMode(true);
+        setGameOver(false);
+    }
     return (
         <div className="flex justify-center items-center flex-col h-[100dvh]" style={{ backgroundImage: `url("/icon.jpeg")` }}>
             {promotionPiece && <PromotionModal curTurn={curTurn} handlePromotion={handlePromotion} />}
@@ -92,13 +110,13 @@ export default function Screen() {
             }
             {(playerColor || spectatorMode) &&
                 <>
-                    <GameOverModal gameOver={gameOver} message={message} />
+                    <GameOverModal gameOver={gameOver} message={message} viewBoard={viewBoard} />
                     <div className="flex md:flex-row flex-col md:gap-x-2 lg:gap-x-4 gap-y-4">
                         <div className="flex flex-col gap-y-2">
                             <InformationBlock />
                             <Board />
                         </div>
-                        <MoveList/>
+                        <MoveList />
                     </div>
                 </>
             }

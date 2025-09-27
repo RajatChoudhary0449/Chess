@@ -1,4 +1,5 @@
 import { BLACK, PIECES, WHITE } from "../constants/constants.js";
+import socket from "../socket.js";
 export const getAllPossibleMoves = ({ row, col, piece }, board, moves) => {
   const lastMove = getLastMove(moves);
   switch (piece) {
@@ -586,32 +587,21 @@ export const checkGameOver = (updatedBoard) => {
       socket.emit("game_over");
       return { state: true, message: "Black wins!!!" };
     } else if (curTurn === WHITE) {
-      setMessage("Draw by stalemate");
-      setGameOver(true);
       socket.emit("game_over");
       return { state: true, message: "Draw by stalemate" };
     }
   }
   if (getAllBlackMoves(updatedBoard).length === 0) {
     if (isBlackKingChecked(updatedBoard)) {
-      setMessage("White wins!!!");
-      setGameOver(true);
       socket.emit("game_over");
       return { state: true, message: "White wins!!!" };
     } else if (curTurn === BLACK) {
-      setMessage("Draw by stalemate");
-      setGameOver(true);
       socket.emit("game_over");
       return { state: true, message: "Draw by stalemate" };
     }
   }
   return { state: false, message: "" };
 };
-// export const canEnPassant=(lastMove,{curRow,curCol})=>{
-//   if(!lastMove) return false;
-//   return ((lastMove.piece===PIECES.WHITE.PAWN || lastMove.piece===PIECES.BLACK.PAWN) && Math.abs(lastMove.from.row-lastMove.to.row)===2 && Math.abs(lastMove.from.col-curCol)===1 &&
-//   lastMove.to.row === curRow)
-// }
 export const playMove = (
   move,
   board,

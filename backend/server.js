@@ -17,6 +17,21 @@ let gameState={
     moves:[]
 }
 let spectators=[];
+const spreadToAll=({event,payload=""},socket)=>{
+  const opponent=io.sockets.sockets.get(socket.id===gameState.player1?gameState.player2:gameState.player1);
+    if(opponent)
+    {
+      opponent.emit(event,payload);
+    }
+    for(let it of spectators)
+    {
+      const socketIT=io.sockets.sockets.get(it);
+      if(socketIT)
+      socketIT.emit(event,payload);
+      else
+      spectators=spectators.filter(id=>id!=it);
+    }
+}
 // Handle connections
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id,gameState?.player1,gameState?.player2);
@@ -45,19 +60,7 @@ io.on("connection", (socket) => {
 
   // Receive move and send to opponent
   socket.on("make_move", ({move}) => {
-    const opponent=io.sockets.sockets.get(socket.id===gameState.player1?gameState.player2:gameState.player1);
-    if(opponent)
-    {
-      opponent.emit("opponent_move",move);
-    }
-    for(let it of spectators)
-    {
-      const socketIT=io.sockets.sockets.get(it);
-      if(socketIT)
-      socketIT.emit("opponent_move",move);
-      else
-      spectators=spectators.filter(id=>id!=it);
-    }
+    spreadToAll({event:"opponent_move",payload:move},socket);
     gameState.moves=[move,...gameState.moves];
   });
 
@@ -66,6 +69,11 @@ io.on("connection", (socket) => {
     if(gameState.player2) gameState.player2=null;
     if(gameState.moves) gameState.moves=[];
     if(spectators.length) spectators=[];
+  })
+
+  socket.on("move_undo",(moves)=>{
+    spreadToAll({event:"undo_move",payload:moves},socket);
+    gameState.moves=moves;
   })
 
   // Handle disconnection

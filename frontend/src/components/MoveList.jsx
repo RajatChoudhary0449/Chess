@@ -1,6 +1,7 @@
 import useGame from '../hooks/useGame'
 import { encode, flipTurn } from '../utils/CommonFunctions';
 import { INITIALBOARDSETUP, WHITE } from '../constants/constants';
+import socket from '../socket';
 
 export default function MoveList() {
     const { moves, spectatorMode, setCurTurn, setAvailableMoves, setBoard, setMoves } = useGame();
@@ -11,6 +12,7 @@ export default function MoveList() {
         setAvailableMoves([]);
         setBoard(curMoves.length === 1 ? INITIALBOARDSETUP : curMoves[1].board);
         setMoves(moves => moves.slice(1));
+        socket.emit("move_undo",moves.slice(1));
     }
     const handleResetGame = () => {
         if (!window.confirm("Are you sure you want to restart the game?")) {
@@ -20,6 +22,7 @@ export default function MoveList() {
         setAvailableMoves([]);
         setBoard(INITIALBOARDSETUP);
         setMoves([]);
+        socket.emit("reset_game");
     }
     return (
         <div className="h-[200px] md:h-[min(80vh,80vw)] lg:h-[min(88vh,88vw)] md:max-h-[min(80vh,80vw)] lg:max-h-[min(88vh,88vw)] w-full">
