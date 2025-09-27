@@ -566,6 +566,28 @@ export const filterCheckMovesOut = (from, allMoves, board, isWhite) => {
   }
   return selectedMove;
 };
+export const getAllWhitePieces = (board) => {
+  const allPieces = [];
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      if (whitePieceAvailable(i, j, board)) {
+        allPieces.push({ row: i, col: j, piece: board[i][j] });
+      }
+    }
+  }
+  return allPieces;
+};
+export const getAllBlackPieces = (board) => {
+  const allPieces = [];
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      if (blackPieceAvailable(i, j, board)) {
+        allPieces.push({ row: i, col: j, piece: board[i][j] });
+      }
+    }
+  }
+  return allPieces;
+};
 export const isWhiteKingChecked = (board) => {
   const [kingCoordinate] = getPieceCoordinates(PIECES.WHITE.KING, board);
   return getAllBlackMoves(board, false).some((item) =>
@@ -580,6 +602,40 @@ export const isBlackKingChecked = (board) => {
 };
 export const getLastMove = (moves) => {
   return moves.length > 0 ? moves[0] : null;
+};
+export const checkForInsufficientMaterial = (whitePieces, blackPieces) => {
+  //King vs King
+  if (whitePieces.length === 1 && blackPieces.length === 1) return true;
+  if (whitePieces.length === 2 && whitePieces[0].piece !== PIECES.WHITE.KING)
+    whitePieces = [whitePieces[1], whitePieces[0]];
+  if (blackPieces.length === 2 && blackPieces[0].piece !== PIECES.BLACK.KING)
+    blackPieces = [blackPieces[1], blackPieces[0]];
+  //King+Bishop vs King
+  if (
+    (whitePieces.length === 2 &&
+      whitePieces[1].piece === PIECES.WHITE.BISHOP) ||
+    (blackPieces.length === 2 && blackPieces[1].piece === PIECES.BLACK.BISHOP)
+  )
+    return true;
+  //King+Knight vs King
+  if (
+    (whitePieces.length === 2 &&
+      whitePieces[1].piece === PIECES.WHITE.KNIGHT) ||
+    (blackPieces.length === 2 && blackPieces[1].piece === PIECES.BLACK.KNIGHT)
+  )
+    return true;
+  //King+Bishop vs King+Bishop(same colour)
+  if (
+    whitePieces.length === 2 &&
+    blackPieces.length === 2 &&
+    whitePieces[1].piece === PIECES.WHITE.BISHOP &&
+    blackPieces[1].piece === PIECES.BLACK.BISHOP &&
+    (whitePieces[1].row + whitePieces[1].col) % 2 ===
+      (blackPieces[1].row + blackPieces[1].col) % 2
+  )
+    return true;
+
+  return false;
 };
 export const checkGameOver = (updatedBoard) => {
   if (getAllWhiteMoves(updatedBoard).length === 0) {
@@ -598,6 +654,13 @@ export const checkGameOver = (updatedBoard) => {
     } else if (curTurn === BLACK) {
       socket.emit("game_over");
       return { state: true, message: "Draw by stalemate" };
+    }
+  }
+  const allWhitePieces = getAllWhitePieces(updatedBoard);
+  const allBlackPieces = getAllWhitePieces(updatedBoard);
+  if (allWhitePieces.length <= 2 && allBlackPieces.length <= 2) {
+    if (checkForInsufficientMaterial(allWhitePieces, allBlackPieces)) {
+      return { state: true, message: "Draw by insufficient material" };
     }
   }
   return { state: false, message: "" };

@@ -42,7 +42,7 @@ export default function Board() {
         const isPlayable = availableMoves.some(move => areCoordinatesEqual(move, flipped ? flipCoordinates(coordinate) : coordinate));
 
         if (isPlayable) {
-            piece=board[activeSquare.row][activeSquare.col];
+            piece = board[activeSquare.row][activeSquare.col];
             const lastMove = getLastMove(moves);
             const isCaptured = (curTurn === WHITE && blackPieceAvailable(row, col, board)) || (curTurn === BLACK && whitePieceAvailable(row, col, board));
             const capturedPiece = isCaptured ? board[row][col] : null;
@@ -69,7 +69,7 @@ export default function Board() {
 
             setBoard(updatedBoard);
             if (!isPromotion) {
-                setMoves(move=>addMove(curMove,move));
+                setMoves(move => addMove(curMove, move));
                 socket.emit("make_move", { move: curMove });
             }
             setCurTurn(cur => flipTurn(cur));
@@ -135,8 +135,10 @@ export default function Board() {
 
                             {rowIndex === 7 && <div className="absolute md:right-1 ,md:bottom-1 right-0.5 bottom-0.5">{flipped ? String.fromCharCode('a'.charCodeAt(0) + 7 - colIndex) : String.fromCharCode('a'.charCodeAt(0) + colIndex)}</div>}
 
-                            {piece ? <img src={piece} className={`w-[90%]  transition-transform duration-300 ease-in-out mb-2 
-                                            ${isAvailableMove && "border-6 !mb-0 border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} /> : isAvailableMove && <div className="w-[30%] h-[30%] bg-[#769656] rounded-full"></div>}
+                            {piece ?
+                                <img src={piece} className={`w-[90%]  transition-transform duration-300 ease-in-out mb-2 
+                            ${isAvailableMove && "border-6 !mb-0 border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} />
+                                : isAvailableMove && <div className="w-[30%] h-[30%] bg-[#769656] rounded-full"></div>}
                         </button>)
                     })}
                 </div>
