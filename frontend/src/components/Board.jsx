@@ -1,6 +1,6 @@
 import { BLACK, PIECES, WHITE } from '../constants/constants';
 import useGame from '../hooks/useGame';
-import { areCoordinatesEqual, blackPieceAvailable, checkGameOver, flip, flipBoard, flipCoordinates, flipTurn, getAllPossibleMoves,  isBlackKingChecked, isWhiteKingChecked, playMove, whitePieceAvailable } from '../utils/CommonFunctions';
+import { addMove, areCoordinatesEqual, blackPieceAvailable, checkGameOver, flip, flipBoard, flipCoordinates, flipTurn, getAllPossibleMoves, getLastMove, isBlackKingChecked, isWhiteKingChecked, pieceAvailable, playMove, whitePieceAvailable } from '../utils/CommonFunctions';
 import blackRook from "../assets/blackRook.png";
 import blackKnight from "../assets/blackKnight.png";
 import blackBishop from "../assets/blackBishop.png";
@@ -42,13 +42,23 @@ export default function Board() {
         const isPlayable = availableMoves.some(move => areCoordinatesEqual(move, flipped ? flipCoordinates(coordinate) : coordinate));
 
         if (isPlayable) {
+            piece=board[activeSquare.row][activeSquare.col];
+            const lastMove = getLastMove(moves);
             const isCaptured = (curTurn === WHITE && blackPieceAvailable(row, col, board)) || (curTurn === BLACK && whitePieceAvailable(row, col, board));
             const capturedPiece = isCaptured ? board[row][col] : null;
             const isPromotion =
                 (curTurn === WHITE && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.PAWN && row === 0) ||
                 (curTurn === BLACK && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.PAWN && row === 7);
             const isCastling = (curTurn === WHITE && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.KING && Math.abs(activeSquare.col - col) === 2) || ((curTurn === BLACK && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.KING && Math.abs(activeSquare.col - col) === 2));
-            const updatedBoard = isCastling ? playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board, null, true) : playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board);
+            const isEnPassant = (lastMove && (lastMove.piece === PIECES.WHITE.PAWN || lastMove.piece === PIECES.BLACK.PAWN)) && (piece === PIECES.WHITE.PAWN || piece === PIECES.BLACK.PAWN) && (Math.abs(col - activeSquare.col) === 1) && !pieceAvailable(row, col, board);
+            let updatedBoard = board;
+            if (isEnPassant) {
+                updatedBoard = playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board, null, false, col);
+            }
+            else {
+
+                updatedBoard = isCastling ? playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board, null, true) : playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board);
+            }
 
             const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCaptured: isCaptured, promotedTo: null, capturedPiece: capturedPiece, isCastling, isPromotion, turn: curTurn, board: updatedBoard };
 
@@ -59,11 +69,11 @@ export default function Board() {
 
             setBoard(updatedBoard);
             if (!isPromotion) {
-                setMoves([curMove, ...moves]);
+                setMoves(move=>addMove(curMove,move));
                 socket.emit("make_move", { move: curMove });
             }
             setCurTurn(cur => flipTurn(cur));
-            const {state,message}=checkGameOver(updatedBoard);
+            const { state, message } = checkGameOver(updatedBoard);
             setGameOver(state);
             setMessage(message);
         }

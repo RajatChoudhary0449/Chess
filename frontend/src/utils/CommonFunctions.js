@@ -1,6 +1,6 @@
 import { BLACK, PIECES, WHITE } from "../constants/constants.js";
 export const getAllPossibleMoves = ({ row, col, piece }, board, moves) => {
-  const lastMove = moves?.length > 0 ? moves[0] : null;
+  const lastMove = getLastMove(moves);
   switch (piece) {
     // Black pieces
     case PIECES.BLACK.ROOK:
@@ -57,6 +57,16 @@ export const inRange = (item) => {
 };
 export const addMove = (move, moves) => {
   return [move, ...moves];
+};
+export const canEnPassant = (lastMove, { curRow, curCol }) => {
+  if (!lastMove) return false;
+  return (
+    (lastMove.piece === PIECES.WHITE.PAWN ||
+      lastMove.piece === PIECES.BLACK.PAWN) &&
+    Math.abs(lastMove.from.row - lastMove.to.row) === 2 &&
+    Math.abs(lastMove.from.col - curCol) === 1 &&
+    lastMove.to.row === curRow
+  );
 };
 export const pieceAvailable = (row, col, board) => {
   return (
@@ -349,10 +359,12 @@ export const getAllPawnMovements = (
     )
       allMoves.push({ row: isWhite ? row - 1 : row + 1, col: col + 1 });
   }
-  // if(canEnPassant(lastMove,{curRow,curCol}))
-  // {
-  //   //ToDo
-  // }
+  if (canEnPassant(lastMove, { curRow: row, curCol: col })) {
+    allMoves.push({
+      row: isWhite ? row - 1 : row + 1,
+      col: lastMove.to.col,
+    });
+  }
   if (!validateKingSafety) return allMoves;
   const selectedMove = filterCheckMovesOut(
     { row, col },
@@ -600,7 +612,13 @@ export const checkGameOver = (updatedBoard) => {
 //   return ((lastMove.piece===PIECES.WHITE.PAWN || lastMove.piece===PIECES.BLACK.PAWN) && Math.abs(lastMove.from.row-lastMove.to.row)===2 && Math.abs(lastMove.from.col-curCol)===1 &&
 //   lastMove.to.row === curRow)
 // }
-export const playMove = (move, board, promoteTo = null, castling = false) => {
+export const playMove = (
+  move,
+  board,
+  promoteTo = null,
+  castling = false,
+  enPassantCol = null
+) => {
   const curBoard = [...board.map((item) => [...item])];
   const { from, to } = move;
   if (castling) {
@@ -624,6 +642,9 @@ export const playMove = (move, board, promoteTo = null, castling = false) => {
     }
 
     return curBoard;
+  }
+  if (enPassantCol) {
+    curBoard[from.row][enPassantCol] = "";
   }
   if (promoteTo) {
     curBoard[to.row][to.col] = promoteTo;
