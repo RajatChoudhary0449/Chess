@@ -1,6 +1,6 @@
 import { BLACK, PIECES, WHITE } from '../constants/constants';
 import useGame from '../hooks/useGame';
-import { addMove, areCoordinatesEqual, blackPieceAvailable, checkGameOver, flip, flipBoard, flipCoordinates, flipTurn, getAllPossibleMoves, getLastMove, isBlackKingChecked, isWhiteKingChecked, pieceAvailable, playMove, whitePieceAvailable } from '../utils/CommonFunctions';
+import { addMove, areCoordinatesEqual, blackPieceAvailable, canBlackKingCastleLong, canBlackKingCastleShort, canWhiteKingCastleLong, canWhiteKingCastleShort, checkGameOver, flip, flipBoard, flipCoordinates, flipTurn, getAllPossibleMoves, getLastMove, isBlackKingChecked, isWhiteKingChecked, pieceAvailable, playMove, whitePieceAvailable } from '../utils/CommonFunctions';
 import blackRook from "../assets/blackRook.png";
 import blackKnight from "../assets/blackKnight.png";
 import blackBishop from "../assets/blackBishop.png";
@@ -14,7 +14,7 @@ import whiteQueen from "../assets/whiteQueen.png";
 import whiteKing from "../assets/whiteKing.png";
 import whitePawn from "../assets/whitePawn.png";
 import socket from '../socket';
-export default function Board() {
+export default function Board({lastPawnMoveOrCapture}) {
     const { board, setBoard, availableMoves, activeSquare, playerColor, flipped, spectatorMode, curTurn, setCurTurn, moves, setMoves, setActiveSquare, setPromotionPiece, setAvailableMoves, setMessage, setGameOver } = useGame();
     const renderBoard = flipped ? flipBoard(board) : board;
     const handleClick = ({ row, col, piece }) => {
@@ -44,23 +44,28 @@ export default function Board() {
         if (isPlayable) {
             piece = board[activeSquare.row][activeSquare.col];
             const lastMove = getLastMove(moves);
-            const isCaptured = (curTurn === WHITE && blackPieceAvailable(row, col, board)) || (curTurn === BLACK && whitePieceAvailable(row, col, board));
-            const capturedPiece = isCaptured ? board[row][col] : null;
             const isPromotion =
                 (curTurn === WHITE && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.PAWN && row === 0) ||
                 (curTurn === BLACK && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.PAWN && row === 7);
             const isCastling = (curTurn === WHITE && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.KING && Math.abs(activeSquare.col - col) === 2) || ((curTurn === BLACK && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.KING && Math.abs(activeSquare.col - col) === 2));
             const isEnPassant = (lastMove && (lastMove.piece === PIECES.WHITE.PAWN || lastMove.piece === PIECES.BLACK.PAWN)) && (piece === PIECES.WHITE.PAWN || piece === PIECES.BLACK.PAWN) && (Math.abs(col - activeSquare.col) === 1) && !pieceAvailable(row, col, board);
+            const isCaptured = isEnPassant || (curTurn === WHITE && blackPieceAvailable(row, col, board)) || (curTurn === BLACK && whitePieceAvailable(row, col, board));
+            
+            let castlingRights='';
+            if (canWhiteKingCastleShort(board, moves)) castlingRights += 'K';
+            if (canWhiteKingCastleLong(board, moves)) castlingRights += 'Q';
+            if (canBlackKingCastleShort(board, moves)) castlingRights += 'k';
+            if (canBlackKingCastleLong(board, moves)) castlingRights += 'q';
+
+            let enPassantSquare=isEnPassant?({row,col}):null;
             let updatedBoard = board;
             if (isEnPassant) {
                 updatedBoard = playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board, null, false, col);
             }
             else {
-
                 updatedBoard = isCastling ? playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board, null, true) : playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board);
             }
-
-            const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCaptured: isCaptured, promotedTo: null, capturedPiece: capturedPiece, isCastling, isPromotion, turn: curTurn, board: updatedBoard };
+            const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCaptured: isCaptured, promotedTo: null, isCastling, isPromotion, turn: curTurn, board: updatedBoard, castlingRights, enPassantSquare};
 
             if (isPromotion) {
                 setPromotionPiece({ move: curMove, turn: curTurn });
@@ -76,6 +81,14 @@ export default function Board() {
             const { state, message } = checkGameOver(updatedBoard);
             setGameOver(state);
             setMessage(message);
+            if((curMove.piece===PIECES.WHITE.PAWN || curMove.piece===PIECES.BLACK.PAWN)||isCaptured)
+            {
+                lastPawnMoveOrCapture.current=0;
+            }
+            else
+            {
+                lastPawnMoveOrCapture.current=lastPawnMoveOrCapture.current+1;
+            }
         }
         setActiveSquare({ row: null, col: null });
         setAvailableMoves([]);

@@ -10,13 +10,13 @@ function GameOverModal({ gameOver, message, viewBoard }) {
             </p>
             <div className="flex gap-x-2">
               <button
-                className="bg-amber-400 hover:bg-amber-500 text-white px-4 py-2 rounded"
+                className="bg-amber-400 hover:bg-amber-500 text-white hover:scale-105 px-4 py-2 rounded"
                 onClick={viewBoard}
               >
                 View Board
               </button>
               <button
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                className="bg-blue-500 hover:bg-blue-600 text-white hover:scale-105 px-4 py-2 rounded"
                 onClick={() => window.location.reload()} // reload to reset game
               >
                 Play Again

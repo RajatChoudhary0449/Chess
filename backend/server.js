@@ -7,104 +7,136 @@ const server = http.createServer(app);
 // Create socket server
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173","https://chess-ten-beta.vercel.app"], // allow React frontend
+    origin: ["http://localhost:5173", "https://chess-ten-beta.vercel.app"], // allow React frontend
     methods: ["GET", "POST"],
   },
 });
-let gameState={
-    player1:null,
-    player2:null,
-    moves:[]
-}
-let spectators=[];
-const spreadToAll=({event,payload=""},socket)=>{
-  const opponent=io.sockets.sockets.get(socket.id===gameState.player1?gameState.player2:gameState.player1);
-    if(opponent)
-    {
-      opponent.emit(event,payload);
-    }
-    for(let it of spectators)
-    {
-      const socketIT=io.sockets.sockets.get(it);
-      if(socketIT)
-      socketIT.emit(event,payload);
-      else
-      spectators=spectators.filter(id=>id!=it);
-    }
-}
+let gameState = {
+  player1: null,
+  player2: null,
+  moves: [],
+};
+let spectators = [];
+const spreadToAll = ({ event, payload = "" }, socket) => {
+  const opponent = io.sockets.sockets.get(
+    socket.id === gameState.player1 ? gameState.player2 : gameState.player1
+  );
+  if (opponent) {
+    opponent.emit(event, payload);
+  }
+  for (let it of spectators) {
+    const socketIT = io.sockets.sockets.get(it);
+    if (socketIT) socketIT.emit(event, payload);
+    else spectators = spectators.filter((id) => id != it);
+  }
+};
+
+const sendToOpponent = ({ event, payload = "" }, socket) => {
+  const opponent = io.sockets.sockets.get(
+    socket.id === gameState.player1 ? gameState.player2 : gameState.player1
+  );
+  if (opponent) {
+    opponent.emit(event, payload);
+  }
+};
+
+const handleGameOver = () => {
+  if (gameState.player1) gameState.player1 = null;
+  if (gameState.player2) gameState.player2 = null;
+  if (gameState.moves) gameState.moves = [];
+  if (spectators.length) spectators = [];
+};
 // Handle connections
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id,gameState?.player1,gameState?.player2);
+  console.log(
+    "User connected:",
+    socket.id,
+    gameState?.player1,
+    gameState?.player2
+  );
   if (!gameState.player1) {
     gameState.player1 = socket.id;
     socket.emit("player_assignment", "white");
-    socket.emit("game_state",gameState);
+    socket.emit("game_state", gameState);
     console.log("Assigned as Player 1 (White):", socket.id);
   } else if (!gameState.player2) {
     gameState.player2 = socket.id;
     socket.emit("player_assignment", "black");
-    socket.emit("game_state",gameState);
-    if(gameState.player1)
-    {
-      io.sockets.sockets.get(gameState.player1).emit("opponent_join","Your opponent has joined");
+    socket.emit("game_state", gameState);
+    if (gameState.player1) {
+      io.sockets.sockets
+        .get(gameState.player1)
+        .emit("opponent_join", "Your opponent has joined");
     }
     console.log("Assigned as Player 2 (Black):", socket.id);
   } else {
     // Reject third+ player
-    if(spectators.includes(socket.id)) return;
+    if (spectators.includes(socket.id)) return;
     spectators.push(socket.id);
-    socket.emit("game_state",gameState);
-    socket.emit("player_assignment","spectator");
+    socket.emit("game_state", gameState);
+    socket.emit("player_assignment", "spectator");
     return;
   }
 
   // Receive move and send to opponent
-  socket.on("make_move", ({move}) => {
-    spreadToAll({event:"opponent_move",payload:move},socket);
-    gameState.moves=[move,...gameState.moves];
+  socket.on("make_move", ({ move }) => {
+    spreadToAll({ event: "opponent_move", payload: move }, socket);
+    gameState.moves = [move, ...gameState.moves];
   });
 
-  socket.on("game_over",()=>{
-    if(gameState.player1) gameState.player1=null;
-    if(gameState.player2) gameState.player2=null;
-    if(gameState.moves) gameState.moves=[];
-    if(spectators.length) spectators=[];
-  })
+  socket.on("game_over", handleGameOver);
 
-  socket.on("move_undo",(moves)=>{
-    spreadToAll({event:"undo_move",payload:moves},socket);
-    gameState.moves=moves;
-  })
+  socket.on("offer_draw", () => {
+    sendToOpponent({ event: "draw_offered" }, socket);
+  });
 
+  socket.on("draw_accepted", () => {
+    sendToOpponent({ event: "draw_accepted" }, socket);
+  });
+
+  socket.on("draw_rejected", () => {
+    sendToOpponent({ event: "draw_rejected" }, socket);
+  });
+
+  socket.on("draw", ({ message }) => {
+    spreadToAll({ event: "drawn", payload: message }, socket);
+    handleGameOver();
+  });
+
+  socket.on("move_undo", (moves) => {
+    spreadToAll({ event: "undo_move", payload: moves }, socket);
+    gameState.moves = moves;
+  });
+
+  socket.on("resign", (payload) => {
+    spreadToAll({ event: "resign", payload }, socket);
+    handleGameOver();
+  });
   // Handle disconnection
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
     if (socket.id === gameState.player1) {
       gameState.player1 = null;
-      if(!gameState.player2)
-      {
-        gameState.moves=[];
+      if (!gameState.player2) {
+        gameState.moves = [];
       }
       console.log("Player 1 disconnected");
     } else if (socket.id === gameState.player2) {
       gameState.player2 = null;
-      if(!gameState.player1)
-      {
-        gameState.moves=[];
+      if (!gameState.player1) {
+        gameState.moves = [];
       }
       console.log("Player 2 disconnected");
-    }
-    else
-    {
+    } else {
       if (spectators.includes(socket.id)) {
-          spectators = spectators.filter(id => id !== socket.id);
-          console.log("Spectator disconnected:", socket.id);
+        spectators = spectators.filter((id) => id !== socket.id);
+        console.log("Spectator disconnected:", socket.id);
       }
     }
   });
 });
 
-const port=process.env.PORT || 5000;
+const port = process.env.PORT || 5000;
 server.listen(port, () => {
   console.log("Server running on somewhere");
 });

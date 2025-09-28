@@ -13,7 +13,7 @@ export default function InformationBlock() {
                     <div className={`w-[20px] h-[20px] rounded-full ${spectatorMode && curTurn === WHITE ? "bg-white border-black" : "bg-black border-white "} ${!spectatorMode && playerColor === WHITE ? "bg-white border-black" : "bg-black border-white "}`}></div>
 
                 </div>
-                <div className={`flex items-center gap-x-2 ${curTurn == playerColor && "transition animate-pulse duration-300"} ${spectatorMode && "hidden"}`}>
+                <div className={`flex items-center gap-x-2 ${spectatorMode && "hidden"}`}>
                     {
                         curTurn === playerColor ? "It's your turn!" : "Waiting for opponent..."
                     }
