@@ -14,7 +14,7 @@ import whiteQueen from "../assets/whiteQueen.png";
 import whiteKing from "../assets/whiteKing.png";
 import whitePawn from "../assets/whitePawn.png";
 import socket from '../socket';
-export default function Board({lastPawnMoveOrCapture}) {
+export default function Board({ lastPawnMoveOrCapture }) {
     const { board, setBoard, availableMoves, activeSquare, playerColor, flipped, spectatorMode, curTurn, setCurTurn, moves, setMoves, setActiveSquare, setPromotionPiece, setAvailableMoves, setMessage, setGameOver } = useGame();
     const renderBoard = flipped ? flipBoard(board) : board;
     const handleClick = ({ row, col, piece }) => {
@@ -50,14 +50,14 @@ export default function Board({lastPawnMoveOrCapture}) {
             const isCastling = (curTurn === WHITE && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.KING && Math.abs(activeSquare.col - col) === 2) || ((curTurn === BLACK && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.KING && Math.abs(activeSquare.col - col) === 2));
             const isEnPassant = (lastMove && (lastMove.piece === PIECES.WHITE.PAWN || lastMove.piece === PIECES.BLACK.PAWN)) && (piece === PIECES.WHITE.PAWN || piece === PIECES.BLACK.PAWN) && (Math.abs(col - activeSquare.col) === 1) && !pieceAvailable(row, col, board);
             const isCaptured = isEnPassant || (curTurn === WHITE && blackPieceAvailable(row, col, board)) || (curTurn === BLACK && whitePieceAvailable(row, col, board));
-            
-            let castlingRights='';
+
+            let castlingRights = '';
             if (canWhiteKingCastleShort(board, moves)) castlingRights += 'K';
             if (canWhiteKingCastleLong(board, moves)) castlingRights += 'Q';
             if (canBlackKingCastleShort(board, moves)) castlingRights += 'k';
             if (canBlackKingCastleLong(board, moves)) castlingRights += 'q';
 
-            let enPassantSquare=isEnPassant?({row,col}):null;
+            let enPassantSquare = isEnPassant ? ({ row, col }) : null;
             let updatedBoard = board;
             if (isEnPassant) {
                 updatedBoard = playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board, null, false, col);
@@ -65,7 +65,7 @@ export default function Board({lastPawnMoveOrCapture}) {
             else {
                 updatedBoard = isCastling ? playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board, null, true) : playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board);
             }
-            const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCaptured: isCaptured, promotedTo: null, isCastling, isPromotion, turn: curTurn, board: updatedBoard, castlingRights, enPassantSquare};
+            const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCaptured: isCaptured, promotedTo: null, isCastling, isPromotion, turn: curTurn, board: updatedBoard, castlingRights, enPassantSquare };
 
             if (isPromotion) {
                 setPromotionPiece({ move: curMove, turn: curTurn });
@@ -81,13 +81,11 @@ export default function Board({lastPawnMoveOrCapture}) {
             const { state, message } = checkGameOver(updatedBoard);
             setGameOver(state);
             setMessage(message);
-            if((curMove.piece===PIECES.WHITE.PAWN || curMove.piece===PIECES.BLACK.PAWN)||isCaptured)
-            {
-                lastPawnMoveOrCapture.current=0;
+            if ((curMove.piece === PIECES.WHITE.PAWN || curMove.piece === PIECES.BLACK.PAWN) || isCaptured) {
+                lastPawnMoveOrCapture.current = 0;
             }
-            else
-            {
-                lastPawnMoveOrCapture.current=lastPawnMoveOrCapture.current+1;
+            else {
+                lastPawnMoveOrCapture.current = lastPawnMoveOrCapture.current + 1;
             }
         }
         setActiveSquare({ row: null, col: null });
@@ -142,7 +140,9 @@ export default function Board({lastPawnMoveOrCapture}) {
                             curTurn === playerColor && handleClick({ row: flipped ? flip(rowIndex) : rowIndex, col: flipped ? flip(colIndex) : colIndex, piece: flipped ? board[flip(rowIndex)][flip(colIndex)] : item })
                         }
                         }
-                            className={`max-h-[min(11vh,11vw)] max-w-[min(11vh,11vw)] md:w-[min(10vh,10vw)] md:h-[min(10vh,10vw)] lg:w-[min(11vh,11vw)] lg:h-[min(11vh,11vw)] w-[50px] h-[50px] flex justify-center items-center relative ${getBackground(isWhiteSquare, flipped ? flip(rowIndex) : rowIndex, flipped ? flip(colIndex) : colIndex)} ${isWhiteSquare ? "text-[#5c3a1e]" : "text-[#fdf6e3]"} md:text-[16px] text-[10px]`}>
+                            className={`max-h-[min(11vh,11vw)] max-w-[min(11vh,11vw)] md:w-[min(10vh,10vw)] md:h-[min(10vh,10vw)] lg:w-[min(11vh,11vw)] lg:h-[min(11vh,11vw)] w-[50px] h-[50px] flex justify-center items-center relative ${getBackground(isWhiteSquare, flipped ? flip(rowIndex) : rowIndex, flipped ? flip(colIndex) : colIndex)} ${isWhiteSquare ? "text-[#5c3a1e]" : "text-[#fdf6e3]"} md:text-[16px] text-[10px]`}
+                            aria-label={`Square ${String.fromCharCode(97 + (flipped ? 7 - colIndex : colIndex))}${flipped ? (rowIndex + 1) : (8 - rowIndex)}${item ? ` with ${item}` : ''}`}
+                        >
 
                             {colIndex === 0 && <div className="absolute md:left-1 md:top-1 left-0.5 top-0.5">{flipped ? (rowIndex + 1) : (8 - rowIndex)}</div>}
 
@@ -150,7 +150,7 @@ export default function Board({lastPawnMoveOrCapture}) {
 
                             {piece ?
                                 <img src={piece} className={`w-[90%]  transition-transform duration-300 ease-in-out mb-2 
-                            ${isAvailableMove && "border-6 !mb-0 border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} />
+                            ${isAvailableMove && "border-6 !mb-0 border-red-500 rounded-full"} ${isActiveSquare && "scale-110"}`} alt={item} />
                                 : isAvailableMove && <div className="w-[30%] h-[30%] bg-[#769656] rounded-full"></div>}
                         </button>)
                     })}
