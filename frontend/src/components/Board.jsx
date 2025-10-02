@@ -1,6 +1,6 @@
 import { BLACK, PIECES, WHITE } from '../constants/constants';
 import useGame from '../hooks/useGame';
-import { addMove, areCoordinatesEqual, blackPieceAvailable, canBlackKingCastleLong, canBlackKingCastleShort, canWhiteKingCastleLong, canWhiteKingCastleShort, checkGameOver, flip, flipBoard, flipCoordinates, flipTurn, getAllPossibleMoves, getLastMove, isBlackKingChecked, isWhiteKingChecked, pieceAvailable, playMove, whitePieceAvailable } from '../utils/CommonFunctions';
+import { addMove, areCoordinatesEqual, blackPieceAvailable, canBlackKingCastleLong, canBlackKingCastleShort, canWhiteKingCastleLong, canWhiteKingCastleShort, checkGameOver, encode, flip, flipBoard, flipCoordinates, flipTurn, getAllPossibleMoves, getLastMove, isBlackKingChecked, isWhiteKingChecked, pieceAvailable, playMove, whitePieceAvailable } from '../utils/CommonFunctions';
 import blackRook from "../assets/blackRook.png";
 import blackKnight from "../assets/blackKnight.png";
 import blackBishop from "../assets/blackBishop.png";
@@ -14,7 +14,7 @@ import whiteQueen from "../assets/whiteQueen.png";
 import whiteKing from "../assets/whiteKing.png";
 import whitePawn from "../assets/whitePawn.png";
 import socket from '../socket';
-export default function Board({ lastPawnMoveOrCapture }) {
+export default function Board() {
     const { board, setBoard, availableMoves, activeSquare, playerColor, flipped, spectatorMode, curTurn, setCurTurn, moves, setMoves, setActiveSquare, setPromotionPiece, setAvailableMoves, setMessage, setGameOver } = useGame();
     const renderBoard = flipped ? flipBoard(board) : board;
     const handleClick = ({ row, col, piece }) => {
@@ -49,15 +49,11 @@ export default function Board({ lastPawnMoveOrCapture }) {
                 (curTurn === BLACK && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.PAWN && row === 7);
             const isCastling = (curTurn === WHITE && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.KING && Math.abs(activeSquare.col - col) === 2) || ((curTurn === BLACK && board[activeSquare.row][activeSquare.col] === PIECES.BLACK.KING && Math.abs(activeSquare.col - col) === 2));
             const isEnPassant = (lastMove && (lastMove.piece === PIECES.WHITE.PAWN || lastMove.piece === PIECES.BLACK.PAWN)) && (piece === PIECES.WHITE.PAWN || piece === PIECES.BLACK.PAWN) && (Math.abs(col - activeSquare.col) === 1) && !pieceAvailable(row, col, board);
-            const isCaptured = isEnPassant || (curTurn === WHITE && blackPieceAvailable(row, col, board)) || (curTurn === BLACK && whitePieceAvailable(row, col, board));
+            const isCapturing = isEnPassant || (curTurn === WHITE && blackPieceAvailable(row, col, board)) || (curTurn === BLACK && whitePieceAvailable(row, col, board));
 
-            let castlingRights = '';
-            if (canWhiteKingCastleShort(board, moves)) castlingRights += 'K';
-            if (canWhiteKingCastleLong(board, moves)) castlingRights += 'Q';
-            if (canBlackKingCastleShort(board, moves)) castlingRights += 'k';
-            if (canBlackKingCastleLong(board, moves)) castlingRights += 'q';
+            const lastPawnMoveOrCapture = (isCapturing || (piece===PIECES.BLACK.PAWN||piece===PIECES.WHITE.PAWN)) ? 0 : (moves.length > 0 ? getLastMove(moves)?.lastPawnMoveOrCapture : 0) + 1;
 
-            let enPassantSquare = isEnPassant ? ({ row, col }) : null;
+            let enPassantTarget = ((piece === PIECES.WHITE.PAWN || piece === PIECES.BLACK.PAWN) && Math.abs(row - activeSquare.row) === 2) ? encode((row + activeSquare.row) / 2, col) : "-";
             let updatedBoard = board;
             if (isEnPassant) {
                 updatedBoard = playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board, null, false, col);
@@ -65,7 +61,17 @@ export default function Board({ lastPawnMoveOrCapture }) {
             else {
                 updatedBoard = isCastling ? playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board, null, true) : playMove({ from: { row: activeSquare.row, col: activeSquare.col }, to: { row, col } }, board);
             }
-            const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCaptured: isCaptured, promotedTo: null, isCastling, isPromotion, turn: curTurn, board: updatedBoard, castlingRights, enPassantSquare };
+
+            let castlingRights = '';
+            if (canWhiteKingCastleShort(updatedBoard, moves)) castlingRights += 'K';
+            if (canWhiteKingCastleLong(updatedBoard, moves)) castlingRights += 'Q';
+            if (canBlackKingCastleShort(updatedBoard, moves)) castlingRights += 'k';
+            if (canBlackKingCastleLong(updatedBoard, moves)) castlingRights += 'q';
+            if (castlingRights === "") castlingRights = "-";
+
+            const fullMove=Math.ceil((moves.length+1)/2);
+
+            const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCapturing, promotedTo: null, isCastling, isPromotion, turn: curTurn, board: updatedBoard, castlingRights, enPassantTarget, lastPawnMoveOrCapture, fullMove };
 
             if (isPromotion) {
                 setPromotionPiece({ move: curMove, turn: curTurn });
@@ -76,17 +82,12 @@ export default function Board({ lastPawnMoveOrCapture }) {
             if (!isPromotion) {
                 setMoves(move => addMove(curMove, move));
                 socket.emit("make_move", { move: curMove });
+                // getFenPosition(curMove);
             }
             setCurTurn(cur => flipTurn(cur));
             const { state, message } = checkGameOver(updatedBoard);
             setGameOver(state);
             setMessage(message);
-            if ((curMove.piece === PIECES.WHITE.PAWN || curMove.piece === PIECES.BLACK.PAWN) || isCaptured) {
-                lastPawnMoveOrCapture.current = 0;
-            }
-            else {
-                lastPawnMoveOrCapture.current = lastPawnMoveOrCapture.current + 1;
-            }
         }
         setActiveSquare({ row: null, col: null });
         setAvailableMoves([]);
@@ -97,7 +98,7 @@ export default function Board({ lastPawnMoveOrCapture }) {
             return "bg-red-500";
         if (board[row][col] === PIECES.BLACK.KING && isBlackKingChecked(board))
             return "bg-red-500";
-        const lastMove = moves.length > 0 ? moves[0] : null;
+        const lastMove = getLastMove(moves);
         const shouldHover = (curTurn === WHITE && whitePieceAvailable(row, col, board)) || (availableMoves.some((item) => areCoordinatesEqual(item, coordinate)));
 
         if (lastMove && (areCoordinatesEqual(lastMove.from, coordinate) || areCoordinatesEqual(lastMove.to, coordinate))) {

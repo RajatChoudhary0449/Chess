@@ -56,8 +56,11 @@ export const flipTurn = (curTurn) => {
 export const inRange = (item) => {
   return item >= 0 && item < 8;
 };
+export const isPiece=(item)=>{
+  return item.length>0;
+}
 export const addMove = (move, moves) => {
-  return [move, ...moves];
+  return [...moves,move];
 };
 export const canEnPassant = (lastMove, { curRow, curCol }) => {
   if (!lastMove) return false;
@@ -71,8 +74,7 @@ export const canEnPassant = (lastMove, { curRow, curCol }) => {
 };
 export const pieceAvailable = (row, col, board) => {
   return (
-    Math.min(row, col) >= 0 &&
-    Math.max(row, col) < 8 &&
+    inRange(row) &&  inRange(col) &&
     board[row][col].length > 0
   );
 };
@@ -601,7 +603,7 @@ export const isBlackKingChecked = (board) => {
   );
 };
 export const getLastMove = (moves) => {
-  return moves.length > 0 ? moves[0] : null;
+  return moves.length > 0 ? moves[moves.length-1] : null;
 };
 export const checkForInsufficientMaterial = (whitePieces, blackPieces) => {
   //King vs King
@@ -664,6 +666,43 @@ export const checkGameOver = (updatedBoard) => {
     }
   }
   return { state: false, message: "" };
+};
+export const getFenPiecePlacementRow=(row)=>{
+  let count=0,fen="";
+  for(let col=0;col<row.length;col++)
+  {
+    if(isPiece(row[col]))
+    {
+      if(count>0)
+      {
+        fen+=count;
+        count=0;
+      }
+      fen+=row[col];
+    }
+    else count++;
+  }
+  if(count>0) fen+=count;
+  return fen;
+}
+export const getFenPiecePlacement = (board) => {
+  return board.slice().map((item)=>getFenPiecePlacementRow(item)).join('/');
+};
+export const getFenPosition = (lastMove) => {
+  if(!lastMove)
+  {
+    return "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  }
+  const fenPiecePlacement=getFenPiecePlacement(lastMove.board);
+  const fenActiveColor=flipTurn(lastMove.turn)?.slice(0,1).toLowerCase();
+  const fenCastlingRights="KQkq";
+  //lastMove.castlingRights;
+  const fenEnPassantTarget="-";
+  //lastMove.enPassantTarget;
+  const fenLastPawnMoveOrCapture=lastMove.lastPawnMoveOrCapture;
+  const fenFullMove=lastMove.fullMove;
+  const fen=`${fenPiecePlacement} ${fenActiveColor} ${fenCastlingRights} ${fenEnPassantTarget} ${fenLastPawnMoveOrCapture} ${fenFullMove}`;
+  return fen;
 };
 export const playMove = (
   move,

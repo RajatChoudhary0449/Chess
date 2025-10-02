@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import socket from "../socket.js";
 import { playMove, flipTurn, addMove, checkGameOver, getLastMove } from "../utils/CommonFunctions.js"
-import { BLACK, INITIALBOARDSETUP, PIECES, WHITE } from "../constants/constants.js";
+import { BLACK, INITIALBOARDSETUP, WHITE } from "../constants/constants.js";
 import GameOverModal from "./GameOverModal.jsx";
 import PromotionModal from "./PromotionModal.jsx";
 import useGame from "../hooks/useGame.js";
@@ -9,10 +9,10 @@ import Board from "./Board";
 import InformationBlock from "./InformationBlock.jsx";
 import MoveList from "./MoveList.jsx";
 import DrawWindowModal from "./DrawWindowModal.jsx";
+import EvaluationBar from "./EvaluationBar.jsx";
 export default function Screen() {
-    const { curTurn, setCurTurn, promotionPiece, setPromotionPiece, gameOver, setGameOver, board, setBoard, setMoves, message, setMessage, playerColor, setPlayerColor, spectatorMode, setSpectatorMode } = useGame();
-    let lastPawnMoveOrCapture = useRef(0);
-    const [drawWindow,showDrawWindow]=useState(false);
+    const { curTurn, setCurTurn, promotionPiece, setPromotionPiece, gameOver, setGameOver, board, setBoard, moves, setMoves, message, setMessage, playerColor, setPlayerColor, spectatorMode, setSpectatorMode } = useGame();
+    const [drawWindow, showDrawWindow] = useState(false);
     useEffect(() => {
         if (!socket.connected) socket.connect();
         const onPlayerAssignment = (color) => {
@@ -47,19 +47,13 @@ export default function Screen() {
         }
         const onGameState = ({ moves }) => {
             setMoves(_ => moves);
-            const updatedBoard = moves.length > 0 ? moves[0].board : INITIALBOARDSETUP;
+            const updatedBoard = getLastMove(moves)?.board || INITIALBOARDSETUP;
             setBoard(_ => updatedBoard);
             setCurTurn(moves?.length % 2 === 0 ? WHITE : BLACK);
         }
         const onOpponentMove = (move) => {
             if (move.turn === playerColor) return; // Prevent duplicate move
-            setMoves((moves) => [move, ...moves]);
-            if (move.isCaptured || move.piece === PIECES.BLACK.PAWN || move.piece === PIECES.WHITE.PAWN) {
-                lastPawnMoveOrCapture.current = 0;
-            }
-            else {
-                lastPawnMoveOrCapture.current = lastPawnMoveOrCapture.current + 1;
-            }
+            setMoves((moves) => addMove(move, moves));
             if (move.isPromotion) {
                 applyPromotion(move);
                 return;
@@ -72,20 +66,20 @@ export default function Screen() {
             setGameOver(state);
             setMessage(message);
         };
-        const onDrawn=(message)=>{
+        const onDrawn = (message) => {
             setGameOver(true);
             setMessage(message);
         }
-        const onDrawOffered=()=>{
+        const onDrawOffered = () => {
             showDrawWindow(true);
         }
-        const onDrawAccepted=()=>{
-            let message=`Draw by mutual agreement`;
+        const onDrawAccepted = () => {
+            let message = `Draw by mutual agreement`;
             setGameOver(true);
             setMessage(message);
-            socket.emit("draw",{state:true,message});
+            socket.emit("draw", { state: true, message });
         }
-        const onDrawRejected=()=>{
+        const onDrawRejected = () => {
             alert("Draw rejected");
         }
         socket.on("player_assignment", onPlayerAssignment);
@@ -147,13 +141,16 @@ export default function Screen() {
             {(playerColor || spectatorMode) &&
                 <>
                     <GameOverModal gameOver={gameOver} message={message} viewBoard={viewBoard} />
-                    {drawWindow && <DrawWindowModal setShowModal={showDrawWindow}/>}
+                    {drawWindow && <DrawWindowModal setShowModal={showDrawWindow} />}
                     <div className="flex md:flex-row flex-col md:gap-x-2 lg:gap-x-4 gap-y-4">
                         <div className="flex flex-col gap-y-2">
                             <InformationBlock />
-                            <Board lastPawnMoveOrCapture={lastPawnMoveOrCapture} />
+                            <div className="flex md:flex-row flex-col gap-y-2 md:gap-x-4">
+                                <EvaluationBar />
+                                <Board />
+                            </div>
                         </div>
-                        <MoveList lastPawnMoveOrCapture={lastPawnMoveOrCapture.current}/>
+                        <MoveList />
                     </div>
                 </>
             }

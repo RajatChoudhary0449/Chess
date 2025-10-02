@@ -81,7 +81,7 @@ io.on("connection", (socket) => {
   // Receive move and send to opponent
   socket.on("make_move", ({ move }) => {
     spreadToAll({ event: "opponent_move", payload: move }, socket);
-    gameState.moves = [move, ...gameState.moves];
+    gameState.moves = [...gameState.moves,move];
   });
 
   socket.on("game_over", handleGameOver);
