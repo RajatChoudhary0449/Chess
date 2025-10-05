@@ -27,8 +27,8 @@ export default function Room() {
     }
     return (
         <div className='h-[100dvh] w-full flex justify-center items-center ' style={{ backgroundImage: `url("/icon.jpeg")` }}>
-            <button className="absolute top-0 left-0 text-white bg-[#e0c097] text-2xl" onClick={handleBackPress}>{"< Back"}</button>
-            <div className='h-auto bg-[#e0c097] text-white rounded-2xl px-4 py-4 '>
+            <button className="absolute top-0 left-0 text-white bg-[#e0c097] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
+            <div className='h-auto bg-[#e0c097] text-white rounded-2xl px-4 py-6 max-w-[90%]'>
                 <h3 className='my-2 text-xl'>Choose one of the option:</h3>
                 <div className='flex flex-col text-xl gap-y-2'>
                     <button className='hover:bg-[#a07556] hover:border-[#e0c097] font-bold border-white border px-4 py-4 flex rounded-[4px] items-center gap-x-4 cursor-pointer' onClick={handleCreateRoom}>
