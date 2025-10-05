@@ -11,77 +11,144 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
-let gameState = {
-  player1: null,
-  player2: null,
-  moves: [],
-};
-let spectators = [];
+/* Room structure:
+  id,
+  gameState,{player1,player2,moves}
+  spectators
+*/
+
 const spreadToAll = ({ event, payload = "" }, socket) => {
+  const room = getRoomFromSocket(socket);
+  if (!room) {
+    console.log("No room found");
+    return;
+  }
   const opponent = io.sockets.sockets.get(
-    socket.id === gameState.player1 ? gameState.player2 : gameState.player1
+    socket.id === room.white ? room.black : room.white
   );
   if (opponent) {
     opponent.emit(event, payload);
   }
-  for (let it of spectators) {
+  for (let it of room.spectators) {
     const socketIT = io.sockets.sockets.get(it);
     if (socketIT) socketIT.emit(event, payload);
-    else spectators = spectators.filter((id) => id != it);
+    else room.spectators = room.spectators.filter((id) => id != it);
   }
 };
 
 const sendToOpponent = ({ event, payload = "" }, socket) => {
+  const room = getRoomFromSocket(socket);
+  if (!room) {
+    console.log("Couldn't find a room");
+    return;
+  }
   const opponent = io.sockets.sockets.get(
-    socket.id === gameState.player1 ? gameState.player2 : gameState.player1
+    socket.id === room.white ? room.black : room.white
   );
   if (opponent) {
     opponent.emit(event, payload);
   }
 };
 
-const handleGameOver = () => {
-  if (gameState.player1) gameState.player1 = null;
-  if (gameState.player2) gameState.player2 = null;
-  if (gameState.moves) gameState.moves = [];
-  if (spectators.length) spectators = [];
+const handleGameOver = (socket) => {
+  const room = getRoomFromSocket(socket);
+  if (room) deleteRoom(room.id);
+};
+let rooms = [];
+const getRoomFromSocket = (socket) => {
+  const id = socket?.id;
+  const filteredResult = rooms.filter(
+    (room) =>
+      room.white === id || room.black === id || room.spectators.includes(id)
+  );
+  if (filteredResult.length > 0) return filteredResult[0];
+  else return null;
+};
+// const checkForRoomExistance = (id) => {
+//   const filteredResult = rooms.filter((room) => room.id === id);
+//   if (filteredResult.length > 0) {
+//     return { status: true, room: filteredResult[0] };
+//   } else return { status: false };
+// };
+const updateRoom = (room) => {
+  rooms = rooms.map((allRooms) => (allRooms.id === room.id ? room : allRooms));
+};
+const deleteRoom = (id) => {
+  rooms = rooms.filter((allRoom) => allRoom.id !== id);
+};
+const removeFromRoom = (socket) => {
+  const room = getRoomFromSocket(socket);
+  if (!room) return;
+  if (room.white === socket.id) room.white = null;
+  if (room.black === socket.id) room.black = null;
+  if (room.spectators.includes(socket.id))
+    room.spectators = room.spectators.filter((rId) => rId != socket.id);
+  updateRoom(room);
 };
 // Handle connections
 io.on("connection", (socket) => {
-  console.log(
-    "User connected:",
-    socket.id,
-    gameState?.player1,
-    gameState?.player2
-  );
-  if (!gameState.player1) {
-    gameState.player1 = socket.id;
-    socket.emit("player_assignment", "white");
-    socket.emit("game_state", gameState);
-    console.log("Assigned as Player 1 (White):", socket.id);
-  } else if (!gameState.player2) {
-    gameState.player2 = socket.id;
-    socket.emit("player_assignment", "black");
-    socket.emit("game_state", gameState);
-    if (gameState.player1) {
-      io.sockets.sockets
-        .get(gameState.player1)
-        .emit("opponent_join", "Your opponent has joined");
+  socket.on("create_room", ({ id, color }) => {
+    if (rooms.find((room) => room.id === id)) {
+      console.log("Room id already available");
+      return;
     }
-    console.log("Assigned as Player 2 (Black):", socket.id);
-  } else {
-    // Reject third+ player
-    if (spectators.includes(socket.id)) return;
-    spectators.push(socket.id);
-    socket.emit("game_state", gameState);
-    socket.emit("player_assignment", "spectator");
+    rooms.push({
+      id,
+      white: color === "white" ? socket.id : null,
+      black: color === "black" ? socket.id : null,
+      moves: [],
+      spectators: [],
+    });
+    socket.emit("player_assignment", color);
+  });
+  socket.on("join_room", ({ id, color }) => {
+    // console.log("Request recieved with id and color", id, color);
+    const room = rooms.find((room) => room.id === id);
+    console.log(room);
+    if (!room) return;
+    if (color === "spectator") {
+      socket.emit("player_assignment", color);
+      if (!room.spectators.includes(socket.id)) room.spectators.push(socket.id);
+      return;
+    }
+    if (room[color]) return;
+    if (!["white", "black"].includes(color)) return;
+    room[color] = socket.id;
+    socket.emit("player_assignment", color);
+    updateRoom(room);
+  });
+
+  socket.on("check_for_room", ({ id, source }) => {
+    // console.log(rooms, id, "check+for+room");
+    const room = rooms.find((room) => room.id === id);
+    if (!room) {
+      socket.emit("availability_response", {
+        access: false,
+        message: "Room not available",
+        source,
+      });
+      return;
+    }
+    socket.emit("availability_response", {
+      access: true,
+      message: "Good to go",
+      room,
+      source,
+    });
     return;
-  }
+  });
+
+  socket.on("delete_room", (roomId) => {
+    deleteRoom(roomId);
+  });
 
   // Receive move and send to opponent
   socket.on("make_move", ({ move }) => {
     spreadToAll({ event: "opponent_move", payload: move }, socket);
-    gameState.moves = [...gameState.moves,move];
+    const room = getRoomFromSocket(socket);
+    if (!room) return;
+    room.moves = [...room.moves, move];
+    updateRoom(room);
   });
 
   socket.on("game_over", handleGameOver);
@@ -100,43 +167,41 @@ io.on("connection", (socket) => {
 
   socket.on("draw", ({ message }) => {
     spreadToAll({ event: "drawn", payload: message }, socket);
-    handleGameOver();
+    handleGameOver(socket);
   });
+
+  socket.on("remove_from_room", removeFromRoom);
 
   socket.on("move_undo", (moves) => {
     spreadToAll({ event: "undo_move", payload: moves }, socket);
-    gameState.moves = moves;
+    const room = getRoomFromSocket(socket);
+    room.moves = moves;
+    updateRoom(room);
   });
 
   socket.on("resign", (payload) => {
     spreadToAll({ event: "resign", payload }, socket);
-    handleGameOver();
+    removeFromRoom(socket);
+    // handleGameOver(socket);
   });
+
   // Handle disconnection
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-    if (socket.id === gameState.player1) {
-      gameState.player1 = null;
-      if (!gameState.player2) {
-        gameState.moves = [];
-      }
-      console.log("Player 1 disconnected");
-    } else if (socket.id === gameState.player2) {
-      gameState.player2 = null;
-      if (!gameState.player1) {
-        gameState.moves = [];
-      }
-      console.log("Player 2 disconnected");
-    } else {
-      if (spectators.includes(socket.id)) {
-        spectators = spectators.filter((id) => id !== socket.id);
-        console.log("Spectator disconnected:", socket.id);
-      }
+    const room = getRoomFromSocket(socket);
+    if (!room) {
+      return;
     }
+    if (room.white === socket.id) room.white = null;
+    else if (room.black === socket.id) room.black = null;
+    else room.spectators = room.spectators.filter((id) => id != socket.id);
+    updateRoom(room);
+    if (!room.white && !room.black && room.spectators.length === 0)
+      deleteRoom(room?.id);
+    console.log("User disconnected:", socket.id);
   });
 });
 
 const port = process.env.PORT || 5000;
 server.listen(port, () => {
-  console.log("Server running on somewhere");
+  console.log("Server running somewhere");
 });

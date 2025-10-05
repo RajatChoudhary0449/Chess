@@ -3,18 +3,19 @@ import { encode, flipTurn, getLastMove } from '../utils/CommonFunctions';
 import { INITIALBOARDSETUP, WHITE } from '../constants/constants';
 import socket from '../socket';
 import { useEffect, useState } from 'react';
-
+// import { useNavigate } from 'react-router-dom';
 export default function MoveList() {
-    const { moves, spectatorMode, curTurn, setCurTurn, setAvailableMoves, setBoard, setMoves, playerColor, setGameOver, setMessage } = useGame();
+    const { moves, spectatorMode, curTurn, setCurTurn, setAvailableMoves, setBoard, setMoves, playerColor, setGameOver, setMessage, setPlayerColor } = useGame();
     const [usedDraw, setUsedDraw] = useState(false);
+    // const nav=useNavigate();
     const handleMoveUndo = () => {
         const curMoves = moves;
         if (curMoves.length === 0) return;
         setCurTurn(curTurn => flipTurn(curTurn));
         setAvailableMoves([]);
         setBoard(curMoves.length === 1 ? INITIALBOARDSETUP : curMoves[1].board);
-        setMoves(moves => moves.slice(0,-1));
-        socket.emit("move_undo", moves.slice(0,-1));
+        setMoves(moves => moves.slice(0, -1));
+        socket.emit("move_undo", moves.slice(0, -1));
     }
     const handleResetGame = () => {
         if (!window.confirm("Are you sure you want to restart the game?")) {
@@ -57,7 +58,7 @@ export default function MoveList() {
     }
     const handleOfferDraw = () => {
         setUsedDraw(true);
-        const lastMove=getLastMove(moves);
+        const lastMove = getLastMove(moves);
         let message = `Draw by threefold repetation`;
         if (threeFoldRepetation(moves)) {
             setGameOver(true);
@@ -75,13 +76,13 @@ export default function MoveList() {
             socket.emit("offer_draw");
         }
     }
-    const shouldDisable = curTurn !== playerColor || usedDraw;
+    const shouldDisable = spectatorMode || curTurn !== playerColor || usedDraw;
     return (
         <div className="h-[200px] md:h-[min(80vh,80vw)] lg:h-[min(88vh,88vw)] md:max-h-[min(80vh,80vw)] lg:max-h-[min(88vh,88vw)] w-full">
             <div className={`md:w-full md:max-w-[220px] md:min-w-[200px] w-[90%] mx-auto px-4 h-full bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 ${spectatorMode ? "md:mt-11" : "md:mt-18"} rounded-md shadow-md flex flex-col`}>
                 <div className='flex justify-between gap-x-2 mb-2'>
                     <button className={` text-[16px] p-2 w-fit flex justify-center border border-white font-bold  transition duration-100 ${shouldDisable ? "pointer-none" : "hover:bg-white hover:scale-110 cursor-pointer"} disabled:opacity-50`} onClick={handleOfferDraw} disabled={shouldDisable}>Offer Draw</button>
-                    <button className={`cursor-pointer text-[16px] p-2 w-fit flex justify-center border border-white hover:text-[16px] font-bold hover:bg-white hover:scale-110 transition duration-100`} onClick={handleResign}>Resign</button>
+                    <button className={`text-[16px] p-2 w-fit flex justify-center border border-white font-bold  transition duration-100 ${spectatorMode ? "pointer-none" : "hover:bg-white hover:scale-110 cursor-pointer"} disabled:opacity-50`} onClick={handleResign} disabled={spectatorMode}>Resign</button>
                 </div>
                 <div className="flex justify-between items-center mb-2">
                     <div className="font-semibold">Move List</div>
@@ -89,7 +90,6 @@ export default function MoveList() {
                         <div className="flex gap-x-2 text-white">
                             {false &&
                                 <div>
-
                                     <button onClick={handleMoveUndo} className="bg-amber-400 p-2 rounded-[4px]" disabled={false}>
                                         <i className="fas fa-undo" title="Undo"></i>
                                     </button>
@@ -102,17 +102,17 @@ export default function MoveList() {
                     )}
                 </div>
                 <div className='grid grid-cols-2 ml-4'>
-                <li key={-1} className={`flex justify-center mb-2 `}>
-                    <div className='w-[20px] h-[20px] bg-white rounded-full'></div>
-                </li>
-                <li key={-2} className='flex justify-center'>
-                    <div className='w-[20px] h-[20px] bg-black rounded-full'></div>
-                </li>
+                    <li key={-1} className={`flex justify-center mb-2 `}>
+                        <div className='w-[20px] h-[20px] bg-white rounded-full'></div>
+                    </li>
+                    <li key={-2} className='flex justify-center'>
+                        <div className='w-[20px] h-[20px] bg-black rounded-full'></div>
+                    </li>
                 </div>
                 <ul className="grid grid-cols-2 overflow-y-auto max-h-full">
                     {moves.map((cur, index) => (
                         <li key={index} className="flex gap-x-2 items-center justify-center text-sm pb-1">
-                            <div className={`w-[20px] text-center ${index%2===1&&"hidden"}`}>{Math.ceil((index+1)/2)+")"}</div>
+                            <div className={`w-[20px] text-center ${index % 2 === 1 && "hidden"}`}>{Math.ceil((index + 1) / 2) + ")"}</div>
                             {/* <div className={`w-[20px] h-[20px] ${cur.turn === WHITE ? "bg-white" : "bg-black"} shadow-md rounded-full`}></div> */}
                             <span>{encode(cur.from.row, cur.from.col)} → {encode(cur.to.row, cur.to.col)}</span>
                         </li>

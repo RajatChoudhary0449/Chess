@@ -1,4 +1,7 @@
-function GameOverModal({ gameOver, message, viewBoard }) {
+import { useNavigate } from "react-router-dom";
+
+function GameOverModal({ gameOver, message, viewBoard, setGameOver,setMessage }) {
+  const nav=useNavigate();
   return (
     <>
       {gameOver && (
@@ -17,7 +20,7 @@ function GameOverModal({ gameOver, message, viewBoard }) {
               </button>
               <button
                 className="bg-blue-500 hover:bg-blue-600 text-white hover:scale-105 px-4 py-2 rounded"
-                onClick={() => window.location.reload()} // reload to reset game
+                onClick={() => {setGameOver(false); setMessage(""); nav("/room/create");}}
               >
                 Play Again
               </button>

@@ -38,6 +38,11 @@ export const getAllPossibleMoves = ({ row, col, piece }, board, moves) => {
 export const encode = (row, col) => {
   return `${String.fromCharCode("a".charCodeAt(0) + col)}${8 - row}`;
 };
+export const decode = (square) => {
+  const col = square.charCodeAt(0) - "a".charCodeAt(0);  
+  const row = 8 - parseInt(square[1]);
+  return { row, col };
+};
 export const flip = (entity) => {
   return 7 - entity;
 };
@@ -603,7 +608,7 @@ export const isBlackKingChecked = (board) => {
   );
 };
 export const getLastMove = (moves) => {
-  return moves.length > 0 ? moves[moves.length-1] : null;
+  return moves?.length > 0 ? moves[moves.length-1] : null;
 };
 export const checkForInsufficientMaterial = (whitePieces, blackPieces) => {
   //King vs King
@@ -695,8 +700,7 @@ export const getFenPosition = (lastMove) => {
   }
   const fenPiecePlacement=getFenPiecePlacement(lastMove.board);
   const fenActiveColor=flipTurn(lastMove.turn)?.slice(0,1).toLowerCase();
-  const fenCastlingRights="KQkq";
-  //lastMove.castlingRights;
+  const fenCastlingRights=lastMove.castlingRights;
   const fenEnPassantTarget="-";
   //lastMove.enPassantTarget;
   const fenLastPawnMoveOrCapture=lastMove.lastPawnMoveOrCapture;
@@ -851,6 +855,65 @@ export const canBlackKingCastleLong = (board, moves) => {
   )
     return false;
 
+  const kingMoved = moves?.some(
+    (move) => move.from.row === 0 && move.from.col === 4
+  );
+  const rookMoved = moves?.some(
+    (move) => move.from.row === 0 && move.from.col === 0
+  );
+  if (kingMoved || rookMoved) return false;
+
+  return true;
+};
+export const canWhiteKingCastleShortRight=(board,moves)=>{
+  // King and rook must be in starting positions
+  if (board[7][4] !== PIECES.WHITE.KING || board[7][7] !== PIECES.WHITE.ROOK) {
+    return false;
+  }
+  //Testing if the rook or king had ever moved
+  const kingMoved = moves?.some(
+    (move) => move.from.row === 7 && move.from.col === 4
+  );
+  const rookMoved = moves?.some(
+    (move) => move.from.row === 7 && move.from.col === 7
+  );
+  if (kingMoved || rookMoved) return false;
+  return true;
+}
+export const canWhiteKingCastleLongRight = (board, moves) => {
+  // King and rook must be in starting positions
+  if (board[7][4] !== PIECES.WHITE.KING || board[7][0] !== PIECES.WHITE.ROOK) {
+    return false;
+  }
+  // Check if king or rook has moved
+  const kingMoved = moves?.some(
+    (move) => move.from.row === 7 && move.from.col === 4
+  );
+  const rookMoved = moves?.some(
+    (move) => move.from.row === 7 && move.from.col === 0
+  );
+  if (kingMoved || rookMoved) return false;
+
+  return true;
+};
+export const canBlackKingCastleShortRight = (board, moves) => {
+  if (board[0][4] !== PIECES.BLACK.KING || board[0][7] !== PIECES.BLACK.ROOK) {
+    return false;
+  }
+  const kingMoved = moves?.some(
+    (move) => move.from.row === 0 && move.from.col === 4
+  );
+  const rookMoved = moves?.some(
+    (move) => move.from.row === 0 && move.from.col === 7
+  );
+  if (kingMoved || rookMoved) return false;
+
+  return true;
+};
+export const canBlackKingCastleLongRight = (board, moves) => {
+  if (board[0][4] !== PIECES.BLACK.KING || board[0][0] !== PIECES.BLACK.ROOK) {
+    return false;
+  }
   const kingMoved = moves?.some(
     (move) => move.from.row === 0 && move.from.col === 4
   );

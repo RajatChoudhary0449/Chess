@@ -14,7 +14,6 @@ export default function EvaluationBar() {
       try {
         const response = await fetchEvaluation({ fen: getFenPosition(lastMove) });
         const data = response;
-        // console.log(moves, lastMove, getFenPosition(lastMove), data);
         setVal(data);
       }
       catch (err) {

@@ -1,6 +1,6 @@
 import { BLACK, PIECES, WHITE } from '../constants/constants';
 import useGame from '../hooks/useGame';
-import { addMove, areCoordinatesEqual, blackPieceAvailable, canBlackKingCastleLong, canBlackKingCastleShort, canWhiteKingCastleLong, canWhiteKingCastleShort, checkGameOver, encode, flip, flipBoard, flipCoordinates, flipTurn, getAllPossibleMoves, getLastMove, isBlackKingChecked, isWhiteKingChecked, pieceAvailable, playMove, whitePieceAvailable } from '../utils/CommonFunctions';
+import { addMove, areCoordinatesEqual, blackPieceAvailable, canBlackKingCastleLongRight, canBlackKingCastleShortRight, canWhiteKingCastleLongRight, canWhiteKingCastleShortRight, checkGameOver, decode, encode, flip, flipBoard, flipCoordinates, flipTurn, getAllPossibleMoves, getFenPosition, getLastMove, isBlackKingChecked, isWhiteKingChecked, pieceAvailable, playMove, whitePieceAvailable } from '../utils/CommonFunctions';
 import blackRook from "../assets/blackRook.png";
 import blackKnight from "../assets/blackKnight.png";
 import blackBishop from "../assets/blackBishop.png";
@@ -14,35 +14,77 @@ import whiteQueen from "../assets/whiteQueen.png";
 import whiteKing from "../assets/whiteKing.png";
 import whitePawn from "../assets/whitePawn.png";
 import socket from '../socket';
-export default function Board() {
+import { useEffect } from 'react';
+import { fetchEvaluation } from '../services/fetchEvaluation';
+export default function Board({ onePlayer }) {
     const { board, setBoard, availableMoves, activeSquare, playerColor, flipped, spectatorMode, curTurn, setCurTurn, moves, setMoves, setActiveSquare, setPromotionPiece, setAvailableMoves, setMessage, setGameOver } = useGame();
     const renderBoard = flipped ? flipBoard(board) : board;
-    const handleClick = ({ row, col, piece }) => {
+    useEffect(() => {
+        async function abc() {
+            const lastMove = getLastMove(moves);
+            try {
+                const response = await fetchEvaluation({ fen: getFenPosition(lastMove) });
+                const data = response;
+                console.log(data)
+                const { row: fromRow, col: fromCol } = decode(data?.from);
+                const { row: toRow, col: toCol } = decode(data?.to);
+
+                const from = { row: fromRow, col: fromCol };
+                const to = { row: toRow, col: toCol };
+                const piece = board[from.row][from.col];
+                // const promotedTo = data?.promotion;
+                handleClick({ ...from, piece });
+
+                const availableMoves = [to];
+                const activeSquare = from;
+
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+
+                const toPiece = board[to.row][to.col];
+
+                handleClick({ ...to, piece: toPiece }, true, { piece, availableMoves, activeSquare });
+            }
+            catch (err) {
+                console.log(err);
+            }
+        }
+        const isItBotTurn = playerColor && onePlayer && playerColor !== curTurn;
+        if (onePlayer && isItBotTurn)
+            abc();
+    }, [curTurn]);
+    const getActiveSquare = () => {
+        return activeSquare;
+    }
+    const handleClick = ({ row, col, piece }, shouldPlayWithoutCheck = null, overridingParams = {}) => {
         const coordinate = { row, col };
-        if (curTurn === WHITE) {
-            //Handle First White Tap
-            if (whitePieceAvailable(row, col, board)) {
-                setActiveSquare({ row, col });
-                let allPossibleMoves = getAllPossibleMoves({ row, col, piece }, board, moves);
-                if (flipped) allPossibleMoves = allPossibleMoves.map(item => flipCoordinates(item));
-                setAvailableMoves(allPossibleMoves);
-                return;
+        if (!shouldPlayWithoutCheck) {
+            if (curTurn === WHITE) {
+                //Handle First White Tap
+                if (whitePieceAvailable(row, col, board)) {
+                    setActiveSquare({ row, col });
+                    let allPossibleMoves = getAllPossibleMoves({ row, col, piece }, board, moves);
+                    if (flipped) allPossibleMoves = allPossibleMoves.map(item => flipCoordinates(item));
+                    setAvailableMoves(allPossibleMoves);
+                    return;
+                }
+            }
+            if (curTurn === BLACK) {
+                //Handle First Black Tap
+                if (blackPieceAvailable(row, col, board)) {
+                    setActiveSquare({ row, col });
+                    let allPossibleMoves = getAllPossibleMoves({ row, col, piece }, board, moves);
+                    if (flipped) allPossibleMoves = allPossibleMoves.map(item => flipCoordinates(item));
+                    setAvailableMoves(allPossibleMoves);
+                    return;
+                }
             }
         }
-        if (curTurn === BLACK) {
-            //Handle First Black Tap
-            if (blackPieceAvailable(row, col, board)) {
-                setActiveSquare({ row, col });
-                let allPossibleMoves = getAllPossibleMoves({ row, col, piece }, board, moves);
-                if (flipped) allPossibleMoves = allPossibleMoves.map(item => flipCoordinates(item));
-                setAvailableMoves(allPossibleMoves);
-                return;
-            }
-        }
-        const isPlayable = availableMoves.some(move => areCoordinatesEqual(move, flipped ? flipCoordinates(coordinate) : coordinate));
+        const isPlayable = shouldPlayWithoutCheck || availableMoves.some(move => areCoordinatesEqual(move, flipped ? flipCoordinates(coordinate) : coordinate));
 
         if (isPlayable) {
-            piece = board[activeSquare.row][activeSquare.col];
+            let activeSquare = shouldPlayWithoutCheck ? overridingParams.activeSquare : getActiveSquare();
+            let piece = shouldPlayWithoutCheck ? overridingParams.piece : board[activeSquare.row][activeSquare.col];
+            // let botPromotion = shouldPlayWithoutCheck && overridingParams.promotedTo;
             const lastMove = getLastMove(moves);
             const isPromotion =
                 (curTurn === WHITE && board[activeSquare.row][activeSquare.col] === PIECES.WHITE.PAWN && row === 0) ||
@@ -51,7 +93,7 @@ export default function Board() {
             const isEnPassant = (lastMove && (lastMove.piece === PIECES.WHITE.PAWN || lastMove.piece === PIECES.BLACK.PAWN)) && (piece === PIECES.WHITE.PAWN || piece === PIECES.BLACK.PAWN) && (Math.abs(col - activeSquare.col) === 1) && !pieceAvailable(row, col, board);
             const isCapturing = isEnPassant || (curTurn === WHITE && blackPieceAvailable(row, col, board)) || (curTurn === BLACK && whitePieceAvailable(row, col, board));
 
-            const lastPawnMoveOrCapture = (isCapturing || (piece===PIECES.BLACK.PAWN||piece===PIECES.WHITE.PAWN)) ? 0 : (moves.length > 0 ? getLastMove(moves)?.lastPawnMoveOrCapture : 0) + 1;
+            const lastPawnMoveOrCapture = (isCapturing || (piece === PIECES.BLACK.PAWN || piece === PIECES.WHITE.PAWN)) ? 0 : (moves.length > 0 ? getLastMove(moves)?.lastPawnMoveOrCapture : 0) + 1;
 
             let enPassantTarget = ((piece === PIECES.WHITE.PAWN || piece === PIECES.BLACK.PAWN) && Math.abs(row - activeSquare.row) === 2) ? encode((row + activeSquare.row) / 2, col) : "-";
             let updatedBoard = board;
@@ -63,16 +105,15 @@ export default function Board() {
             }
 
             let castlingRights = '';
-            if (canWhiteKingCastleShort(updatedBoard, moves)) castlingRights += 'K';
-            if (canWhiteKingCastleLong(updatedBoard, moves)) castlingRights += 'Q';
-            if (canBlackKingCastleShort(updatedBoard, moves)) castlingRights += 'k';
-            if (canBlackKingCastleLong(updatedBoard, moves)) castlingRights += 'q';
+            if (canWhiteKingCastleShortRight(updatedBoard, moves)) castlingRights += 'K';
+            if (canWhiteKingCastleLongRight(updatedBoard, moves)) castlingRights += 'Q';
+            if (canBlackKingCastleShortRight(updatedBoard, moves)) castlingRights += 'k';
+            if (canBlackKingCastleLongRight(updatedBoard, moves)) castlingRights += 'q';
             if (castlingRights === "") castlingRights = "-";
 
-            const fullMove=Math.ceil((moves.length+1)/2);
+            const fullMove = Math.ceil((moves.length + 1) / 2);
 
             const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCapturing, promotedTo: null, isCastling, isPromotion, turn: curTurn, board: updatedBoard, castlingRights, enPassantTarget, lastPawnMoveOrCapture, fullMove };
-
             if (isPromotion) {
                 setPromotionPiece({ move: curMove, turn: curTurn });
             }
