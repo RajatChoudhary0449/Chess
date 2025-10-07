@@ -64,12 +64,6 @@ const getRoomFromSocket = (socket) => {
   if (filteredResult.length > 0) return filteredResult[0];
   else return null;
 };
-// const checkForRoomExistance = (id) => {
-//   const filteredResult = rooms.filter((room) => room.id === id);
-//   if (filteredResult.length > 0) {
-//     return { status: true, room: filteredResult[0] };
-//   } else return { status: false };
-// };
 const updateRoom = (room) => {
   rooms = rooms.map((allRooms) => (allRooms.id === room.id ? room : allRooms));
 };
@@ -85,6 +79,7 @@ const removeFromRoom = (socket) => {
     room.spectators = room.spectators.filter((rId) => rId != socket.id);
   updateRoom(room);
 };
+
 // Handle connections
 io.on("connection", (socket) => {
   socket.on("create_room", ({ id, color }) => {
@@ -100,11 +95,10 @@ io.on("connection", (socket) => {
       spectators: [],
     });
     socket.emit("player_assignment", color);
+    socket.emit("update_game_state",[]);
   });
   socket.on("join_room", ({ id, color }) => {
-    // console.log("Request recieved with id and color", id, color);
     const room = rooms.find((room) => room.id === id);
-    console.log(room);
     if (!room) return;
     if (color === "spectator") {
       socket.emit("player_assignment", color);
@@ -119,7 +113,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("check_for_room", ({ id, source }) => {
-    // console.log(rooms, id, "check+for+room");
     const room = rooms.find((room) => room.id === id);
     if (!room) {
       socket.emit("availability_response", {

@@ -41,8 +41,10 @@ export const GameProvider = ({ children }) => {
         nav("/room/create");
       }
       else {
-        if (!room[WHITE] || room[WHITE] === socket.id) curRights.push(WHITE);
-        if (!room[BLACK] || room[BLACK] === socket.id) curRights.push(BLACK);
+        if (room?.id?.length===6 && (!room[WHITE] || room[WHITE] === socket.id)) curRights.push(WHITE);
+        if(room?.id?.length!==6 && room.moves.length%2===0 && !room[WHITE]) curRights.push(WHITE);
+        if (room?.id?.length===6 && (!room[BLACK] || room[BLACK] === socket.id)) curRights.push(BLACK);
+        if(room?.id?.length!==6 && room.moves.length%2===1 && !room[BLACK]) curRights.push(BLACK);
         setAvailableRights(curRights);
       }
       if (source === "Screen") {
@@ -89,11 +91,8 @@ export const GameProvider = ({ children }) => {
       setGameOver(state);
       setMessage(message);
     }
-    const onGameState = ({ moves }) => {
-      setMoves(_ => moves);
-      const updatedBoard = getLastMove(moves)?.board || INITIALBOARDSETUP;
-      setBoard(_ => updatedBoard);
-      setCurTurn(moves?.length % 2 === 0 ? WHITE : BLACK);
+    const onUpdateGameState = (moves) => {
+      updateGameState(moves)
     }
     const onOpponentMove = (move) => {
       if (move.turn === playerColor) return; // Prevent duplicate move
@@ -128,7 +127,7 @@ export const GameProvider = ({ children }) => {
     }
     socket.on("player_assignment", onPlayerAssignment);
     socket.on("opponent_move", onOpponentMove);
-    socket.on("game_state", onGameState);
+    socket.on("update_game_state", onUpdateGameState);
     socket.on("undo_move", onUndoMove)
     socket.on("opponent_join", onOpponentJoin);
     socket.on("resign", onRecievingResign);
@@ -140,7 +139,7 @@ export const GameProvider = ({ children }) => {
     return () => {
       socket.off("player_assignment", onPlayerAssignment);
       socket.off("opponent_move", onOpponentMove);
-      socket.off("game_state", onGameState);
+      socket.off("update_game_state", onUpdateGameState);
       socket.off("undo_move", onUndoMove);
       socket.off("opponent_join", onOpponentJoin);
       socket.off("resign", onRecievingResign);

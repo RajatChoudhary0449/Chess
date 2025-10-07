@@ -44,19 +44,18 @@ export default function Options() {
     }
     return (
         <div className='h-[100dvh] w-full flex justify-center items-center ' style={{ backgroundImage: `url("/icon.jpeg")` }}>
-            <button className="absolute top-0 left-0 text-white bg-[#e0c097] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
-            <div className='h-auto bg-[#e0c097] text-white rounded-2xl px-4 py-4 flex flex-col gap-y-4'>
-
-                <div className='flex items-center gap-x-4'>
+            <div className='h-auto bg-[#444] text-white rounded-2xl px-4 py-4 flex flex-col gap-y-4'>
+            <button className="flex justify-start text-white bg-[#444] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
+                <div className='flex items-center justify-between'>
                     <p className='text-xl md:text-2xl font-semibold'>Color</p>
                     <div className='flex gap-x-4 items-center'>
                         <div>
-                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color === WHITE ? "border-green-600" : "border-[#e0c097]"} bg-white`} onClick={() => setInput(input => ({ ...input, color: WHITE }))}>
+                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color === WHITE ? "border-green-600" : "border-[#444]"} bg-white`} onClick={() => setInput(input => ({ ...input, color: WHITE }))}>
                                 <img src={whiteKing} alt='whiteKing'></img>
                             </button>
                         </div>
                         <div>
-                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color !== WHITE && input.color !== BLACK ? "border-green-600" : "border-[#e0c097]"} bg-white`} onClick={() => {
+                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color !== WHITE && input.color !== BLACK ? "border-green-600" : "border-[#444]"} bg-white`} onClick={() => {
                                 setInput(input => ({ ...input, color: "Random" }));
                             }}>
                                 <div className="max-w-[50%] max-h-full bg-white translate-x-0 h-full overflow-hidden absolute left-0 top-0">
@@ -68,7 +67,7 @@ export default function Options() {
                             </button>
                         </div>
                         <div>
-                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color === BLACK ? "border-green-600" : "border-[#e0c097]"} bg-[#444]`} onClick={() => setInput(input => ({ ...input, color: BLACK }))}>
+                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color === BLACK ? "border-green-600" : "border-[#444]"} bg-[#444]`} onClick={() => setInput(input => ({ ...input, color: BLACK }))}>
                                 <img src={blackKing} alt={"blackKing"}></img>
                             </button>
                         </div>
@@ -95,7 +94,7 @@ export default function Options() {
                         ))}
                     </div>
                 </div>
-                <button className='text-2xl bg-green-600 py-2 rounded-xl font-semibold mt-4 cursor-pointer' onClick={handleRoomCreation}>Start the game</button>
+                <button className='text-2xl bg-purple-700 py-2 rounded-xl font-semibold mt-4 cursor-pointer' onClick={handleRoomCreation}>Start the game</button>
             </div>
         </div>
     )

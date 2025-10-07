@@ -18,7 +18,7 @@ export default function InformationBlock() {
     }
     const handleBackClick = () => {
         socket.emit("remove_from_room");
-        nav("/room/create");
+        nav(`/${id.length===6?"room":"lobby"}/create`);
     }
     return (
         <div className="flex md:flex-row flex-col gap-y-4 justify-between items-center">
