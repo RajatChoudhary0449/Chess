@@ -85,6 +85,7 @@ io.on("connection", (socket) => {
   socket.on("create_room", ({ id, color }) => {
     if (rooms.find((room) => room.id === id)) {
       console.log("Room id already available");
+      socket.emit("room_creation_status",{status:false,id});
       return;
     }
     rooms.push({
@@ -96,6 +97,7 @@ io.on("connection", (socket) => {
     });
     socket.emit("player_assignment", color);
     socket.emit("update_game_state",[]);
+    socket.emit("room_creation_status",{status:true,id});
   });
   socket.on("join_room", ({ id, color }) => {
     const room = rooms.find((room) => room.id === id);

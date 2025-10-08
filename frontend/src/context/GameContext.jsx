@@ -38,7 +38,7 @@ export const GameProvider = ({ children }) => {
           setShowInfoModal(true);
           setInfoMessage(message);
         }, 0);
-        nav("/room/create");
+        nav("/room");
       }
       else {
         if (room?.id?.length===6 && (!room[WHITE] || room[WHITE] === socket.id)) curRights.push(WHITE);
@@ -59,6 +59,19 @@ export const GameProvider = ({ children }) => {
           setInfoMessage(`Congrats, you are joined as a spectator`);
         }
         else setShowJoinModal(true);
+      }
+    }
+    const onRoomCreationStatus=({status,id})=>{
+      console.log("recieved request")
+      if(status)
+      {
+        nav(`/room/${id}`);
+      }
+      else
+      {
+        setInfoMessage("Room already exist");
+        setShowInfoModal(true);
+        
       }
     }
     const onPlayerAssignment = (color) => {
@@ -136,6 +149,7 @@ export const GameProvider = ({ children }) => {
     socket.on("draw_accepted", onDrawAccepted);
     socket.on("draw_rejected", onDrawRejected);
     socket.on("availability_response", onAvailabilityResponse);
+    socket.on("room_creation_status",onRoomCreationStatus)
     return () => {
       socket.off("player_assignment", onPlayerAssignment);
       socket.off("opponent_move", onOpponentMove);
@@ -148,6 +162,7 @@ export const GameProvider = ({ children }) => {
       socket.off("draw_accepted", onDrawAccepted);
       socket.off("draw_rejected", onDrawRejected);
       socket.off("availability_response", onAvailabilityResponse);
+      socket.off("room_creation_status",onRoomCreationStatus);
     };
   }, []);
   const applyPromotion = (move) => {

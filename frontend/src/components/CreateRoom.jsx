@@ -10,8 +10,9 @@ import useGame from '../hooks/useGame';
 import InformationModal from "./InformationModal";
 export default function CreateRoom() {
     const timeModes = [{ name: "initial", value: 5, title: "Initial Time" }, { name: "increment", value: 2, title: "Increment" }, { name: "delay", value: 0, title: "Delay" }]
+    const listOfAlphabets=`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`;
     //const colours=[WHITE,BLACK,"Random"];
-    const generateRoomId = customAlphabet(`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`, 6);
+    const generateRoomId = customAlphabet(listOfAlphabets, 6);
     const [input, setInput] = useState({ id: generateRoomId(), color: WHITE, time: { initial: 5, increment: 2, delay: 0 } });
     const isMobile = useMobileView();
     const nav = useNavigate();
@@ -19,10 +20,14 @@ export default function CreateRoom() {
     const [messageType, setMessageType] = useState("warning");
     const validateRoomId = () => {
         const { id } = input;
-        if (id.length < 6) {
-            return { status: false, message: "Id length cannot be less than 6 alphanumeric characters", messageType: "danger" };
+        if (id.length !== 6) {
+            return { status: false, message: "Id should be of 6 alphanumeric characters", messageType: "warning" };
         }
-        return { status: true, message: "Copy the room ID or share this URL to invite your opponent.", messageType: "Success" };
+        else if(![...id].every(item=>listOfAlphabets.includes(item)))
+        {
+            return {status: false,message: "Id should only contain alphanumeric characters", messageType: "warning"};
+        }
+        return { status: true, message: "Copy the room ID or share this URL to invite your opponent.", messageType: "success" };
     }
     const generateRandomColor = () => {
         let cur = Math.floor(Math.random() * 2);
@@ -38,7 +43,6 @@ export default function CreateRoom() {
         setInfoMessage(message);
         if (!status) return;
         socket.emit("create_room", { id: input.id, color: input.color === "Random" ? generateRandomColor() : input.color });
-        nav(`/room/${input.id}`);
     }
     const handleTimeChange = (e) => {
         if (Number(e.target.value) >= 60) {
@@ -70,8 +74,8 @@ export default function CreateRoom() {
     return (
         <div className='h-[100dvh] w-full flex justify-center items-center ' style={{ backgroundImage: `url("/icon.jpeg")` }}>
             {showInfoModal && <InformationModal setShow={setShowInfoModal} message={infoMessage} position='top-right' messageType={messageType} />}
-            <button className="absolute top-0 left-0 text-white bg-[#e0c097] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
-            <div className='h-auto bg-[#e0c097] text-white rounded-2xl px-2 md:px-4 py-4 flex flex-col gap-y-4 max-w-[90dvw]'>
+            <div className='h-auto bg-[#444] text-white rounded-2xl px-2 md:px-4 py-4 flex flex-col gap-y-4 max-w-[90dvw]'>
+                <button className="flex justify-start text-white bg-[#444] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
                 <div className='flex items-center gap-x-4'>
                     <p className='md:text-2xl font-semibold text-xl text-nowrap'>Room ID</p>
                     <input value={input.id} onChange={(e) => setInput(input => ({ ...input, id: e.target.value }))} className="outline-none px-4 py-4 text-xl" spellCheck={false} maxLength={6}></input>
@@ -80,12 +84,12 @@ export default function CreateRoom() {
                     <p className='text-xl md:text-2xl font-semibold'>Color</p>
                     <div className='flex gap-x-4 items-center'>
                         <div>
-                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color === WHITE ? "border-green-600" : "border-[#e0c097]"} bg-white`} onClick={() => setInput(input => ({ ...input, color: WHITE }))}>
+                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color === WHITE ? "border-purple-700" : "border-[#444] hover:scale-105"} bg-white`} onClick={() => setInput(input => ({ ...input, color: WHITE }))}>
                                 <img src={whiteKing} alt='whiteKing'></img>
                             </button>
                         </div>
                         <div>
-                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color !== WHITE && input.color !== BLACK ? "border-green-600" : "border-[#e0c097]"} bg-white`} onClick={() => {
+                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color !== WHITE && input.color !== BLACK ? "border-purple-700" : "border-[#444] hover:scale-105"} bg-white`} onClick={() => {
                                 setInput(input => ({ ...input, color: "Random" }));
                             }}>
                                 <div className="max-w-[50%] max-h-full bg-white translate-x-0 h-full overflow-hidden absolute left-0 top-0">
@@ -97,7 +101,7 @@ export default function CreateRoom() {
                             </button>
                         </div>
                         <div>
-                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color === BLACK ? "border-green-600" : "border-[#e0c097]"} bg-[#444]`} onClick={() => setInput(input => ({ ...input, color: BLACK }))}>
+                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color === BLACK ? "border-purple-700" : "border-[#444] hover:scale-105"} bg-[#444]`} onClick={() => setInput(input => ({ ...input, color: BLACK }))}>
                                 <img src={blackKing} alt={"blackKing"}></img>
                             </button>
                         </div>
@@ -124,7 +128,7 @@ export default function CreateRoom() {
                         ))}
                     </div>
                 </div>
-                <button className='text-2xl bg-green-600 py-2 rounded-xl font-semibold mt-4 cursor-pointer' onClick={handleRoomCreation}>Start the game</button>
+                <button className='text-2xl bg-purple-700 py-2 rounded-xl font-semibold mt-4 cursor-pointer' onClick={handleRoomCreation}>Start the game</button>
             </div>
         </div>
     )

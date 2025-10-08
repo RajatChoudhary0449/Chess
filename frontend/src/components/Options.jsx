@@ -22,7 +22,6 @@ export default function Options() {
     const handleRoomCreation = () => {
         const id = generateRoomId();
         socket.emit("create_room", { id, color: input.color === "Random" ? generateRandomColor() : input.color });
-        nav(`/room/${id}`);
     }
     const handleTimeChange = (e) => {
         if (Number(e.target.value) >= 60) {
@@ -50,12 +49,12 @@ export default function Options() {
                     <p className='text-xl md:text-2xl font-semibold'>Color</p>
                     <div className='flex gap-x-4 items-center'>
                         <div>
-                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color === WHITE ? "border-green-600" : "border-[#444]"} bg-white`} onClick={() => setInput(input => ({ ...input, color: WHITE }))}>
+                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color === WHITE ? "border-purple-700" : "border-[#444] hover:scale-105"} bg-white`} onClick={() => setInput(input => ({ ...input, color: WHITE }))}>
                                 <img src={whiteKing} alt='whiteKing'></img>
                             </button>
                         </div>
                         <div>
-                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color !== WHITE && input.color !== BLACK ? "border-green-600" : "border-[#444]"} bg-white`} onClick={() => {
+                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color !== WHITE && input.color !== BLACK ? "border-purple-700" : "border-[#444] hover:scale-105"} bg-white`} onClick={() => {
                                 setInput(input => ({ ...input, color: "Random" }));
                             }}>
                                 <div className="max-w-[50%] max-h-full bg-white translate-x-0 h-full overflow-hidden absolute left-0 top-0">
@@ -67,7 +66,7 @@ export default function Options() {
                             </button>
                         </div>
                         <div>
-                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color === BLACK ? "border-green-600" : "border-[#444]"} bg-[#444]`} onClick={() => setInput(input => ({ ...input, color: BLACK }))}>
+                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color === BLACK ? "border-purple-700" : "border-[#444] hover:scale-105"} bg-[#444]`} onClick={() => setInput(input => ({ ...input, color: BLACK }))}>
                                 <img src={blackKing} alt={"blackKing"}></img>
                             </button>
                         </div>

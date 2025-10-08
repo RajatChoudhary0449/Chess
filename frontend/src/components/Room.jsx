@@ -3,10 +3,11 @@ import { useEffect, useState } from "react";
 import { BLACK, WHITE } from "../constants/constants";
 import socket from "../socket";
 import useGame from "../hooks/useGame";
+import InformationModal from "./InformationModal";
 export default function Room() {
     const [inputId, setInputId] = useState("");
     const [showModes, setShowModes] = useState(false);
-    const { availableRights } = useGame();
+    const { availableRights, showInfoModal, setShowInfoModal, infoMessage, setInfoMessage } = useGame();
     const nav = useNavigate()
     const handleBackPress = () => {
         nav("/");
@@ -15,27 +16,31 @@ export default function Room() {
         nav(`/room/create`);
     }
     const handleJoinRoom = () => {
-        setShowModes(mode => !mode);
-        socket.emit("check_for_room", {id:inputId,source:"Room"});
+        if (inputId.length < 6) {
+            setShowInfoModal(true);
+            setInfoMessage("Invalid Room ID");
+        }
+        else {
+            setShowModes(mode => !mode);
+            socket.emit("check_for_room", { id: inputId, source: "Room" });
+        }
     }
-    useEffect(() => {
-        if (inputId.length < 6 && showModes) { console.log("Invalid RoomId"); setShowModes(false); }
-    }, [inputId, showModes]);
     const handleJoinWithMode = (color) => {
         socket.emit("join_room", { id: inputId, color });
         nav(`/room/${inputId}`);
     }
     return (
         <div className='h-[100dvh] w-full flex justify-center items-center ' style={{ backgroundImage: `url("/icon.jpeg")` }}>
-            <button className="absolute top-0 left-0 text-white bg-[#e0c097] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
-            <div className='h-auto bg-[#e0c097] text-white rounded-2xl px-4 py-6 max-w-[90%]'>
+            {showInfoModal && <InformationModal message={infoMessage} messageType={"warning"} setShow={setShowInfoModal} />}
+            <div className='h-auto bg-[#444] text-white rounded-2xl px-4 py-6 max-w-[90%]'>
+                <button className="flex justify-start text-white bg-[#444] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
                 <h3 className='my-2 text-xl'>Choose one of the option:</h3>
                 <div className='flex flex-col text-xl gap-y-2'>
-                    <button className='hover:bg-[#a07556] hover:border-[#e0c097] font-bold border-white border px-4 py-4 flex rounded-[4px] items-center gap-x-4 cursor-pointer' onClick={handleCreateRoom}>
+                    <button className='hover:bg-white hover:text-[#444] font-bold border-white border px-4 py-4 flex rounded-[4px] items-center gap-x-4 cursor-pointer' onClick={handleCreateRoom}>
                         Create a room
                     </button>
-                    <input maxLength={7} onChange={(e) => setInputId(e.target.value)} value={inputId} className="mt-2 px-4 py-4 outline-none text-decoration-none border-white text-[#444]" autoFocus placeholder="Enter the room id to join" spellCheck={false}></input>
-                    <button className='hover:bg-[#a07556] hover:border-[#e0c097] font-bold border-white border px-4 py-4 flex rounded-[4px] items-center justify-between cursor-pointer ' onClick={handleJoinRoom}>
+                    <input maxLength={7} onChange={(e) => setInputId(e.target.value)} value={inputId} className="mt-2 px-4 py-4 outline-none text-decoration-none border-white text-white" autoFocus placeholder="Enter the room id to join" spellCheck={false}></input>
+                    <button className='hover:bg-white hover:text-[#444] font-bold border-white border px-4 py-4 flex rounded-[4px] items-center justify-between cursor-pointer ' onClick={handleJoinRoom}>
                         {showModes ? "Join as?" : "Join a Room"}
                         <div className="flex gap-x-2">
                             <div className="h-[30px] border border-white"></div>
