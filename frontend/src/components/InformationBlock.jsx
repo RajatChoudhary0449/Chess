@@ -26,7 +26,7 @@ export default function InformationBlock() {
                 <div className={`text-white flex flex-col md:text-2xl text-xl cursor-pointer`} onClick={handleBackClick}>
                     {"< Back"}
                 </div>
-                <div className="text-white flex flex-col md:hidden h-[70px] justify-center">
+                <div className="text-white flex flex-col md:hidden h-[70px] md:text-2xl text-xl justify-center">
                     <div className="flex gap-x-2 items-center">
                         <p>
                             Room ID: <strong>{id}</strong>

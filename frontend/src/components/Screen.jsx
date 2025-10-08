@@ -16,6 +16,7 @@ import { BLACK, WHITE } from "../constants/constants.js";
 export default function Screen() {
     const { curTurn, setCurTurn, promotionPiece, setPromotionPiece, gameOver, setGameOver, board, setBoard, setMoves, message, setMessage, playerColor, spectatorMode, setSpectatorMode, drawWindow, showDrawWindow, showInfoModal, setShowInfoModal, infoMessage, availableRights, showJoinModal, setShowJoinModal } = useGame();
     const [onePlayer, setOnePlayer] = useState(false);
+    const [val, setVal] = useState();
     const { id } = useParams();
     useEffect(() => {
         if (id.length !== 6) {
@@ -69,11 +70,11 @@ export default function Screen() {
                         <div className="flex flex-col gap-y-2">
                             <InformationBlock />
                             <div className="flex md:flex-row flex-col gap-y-2 md:gap-x-4">
-                                {spectatorMode && <EvaluationBar />}
+                                {spectatorMode && <EvaluationBar val={val} setVal={setVal}/>}
                                 <Board onePlayer={onePlayer} />
                             </div>
                         </div>
-                        <MoveList />
+                        <MoveList val={val} setVal={setVal}/>
                     </div>
                 </>
             }

@@ -4,13 +4,13 @@ import { getFenPosition, getLastMove } from '../utils/CommonFunctions';
 import { fetchEvaluation } from '../services/fetchEvaluation';
 import useMobileView from '../hooks/useMobileView';
 
-export default function EvaluationBar() {
-  const { moves } = useGame();
+export default function EvaluationBar({val,setVal}) {
+  const { moves, activeMoveIndex } = useGame();
   const isMobile = useMobileView();
-  const [val, setVal] = useState();
+
   useEffect(() => {
     async function abc() {
-      const lastMove = getLastMove(moves);
+      const lastMove = moves?.[activeMoveIndex];
       try {
         const response = await fetchEvaluation({ fen: getFenPosition(lastMove) });
         const data = response;
@@ -21,7 +21,7 @@ export default function EvaluationBar() {
       }
     }
     abc();
-  }, [moves?.length]);
+  }, [moves?.length,activeMoveIndex]);
   return (
     <div className="md:h-full h-[30px] w-full md:w-[30px] relative rounded overflow-hidden">
       <div

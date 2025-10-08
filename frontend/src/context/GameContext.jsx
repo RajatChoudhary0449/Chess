@@ -22,6 +22,7 @@ export const GameProvider = ({ children }) => {
   const [infoMessage, setInfoMessage] = useState("");
   const [availableRights, setAvailableRights] = useState([]);
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [activeMoveIndex, setActiveMoveIndex] = useState(0);
   const flipped = playerColor === BLACK;
   const nav = useNavigate();
   const updateGameState = (moves) => {
@@ -204,7 +205,9 @@ export const GameProvider = ({ children }) => {
     setAvailableRights,
     showJoinModal,
     setShowJoinModal,
-    flipped
+    flipped,
+    activeMoveIndex,
+    setActiveMoveIndex
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

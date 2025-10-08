@@ -1,4 +1,4 @@
-import { BLACK, PIECES, WHITE } from '../constants/constants';
+import { BLACK, INITIALBOARDSETUP, PIECES, WHITE } from '../constants/constants';
 import useGame from '../hooks/useGame';
 import { addMove, areCoordinatesEqual, blackPieceAvailable, canBlackKingCastleLongRight, canBlackKingCastleShortRight, canWhiteKingCastleLongRight, canWhiteKingCastleShortRight, checkGameOver, decode, encode, flip, flipBoard, flipCoordinates, flipTurn, getAllPossibleMoves, getFenPosition, getLastMove, isBlackKingChecked, isWhiteKingChecked, pieceAvailable, playMove, whitePieceAvailable } from '../utils/CommonFunctions';
 import blackRook from "../assets/blackRook.png";
@@ -14,11 +14,14 @@ import whiteQueen from "../assets/whiteQueen.png";
 import whiteKing from "../assets/whiteKing.png";
 import whitePawn from "../assets/whitePawn.png";
 import socket from '../socket';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchEvaluation } from '../services/fetchEvaluation';
 export default function Board({ onePlayer }) {
-    const { board, setBoard, availableMoves, activeSquare, playerColor, flipped, spectatorMode, curTurn, setCurTurn, moves, setMoves, setActiveSquare, setPromotionPiece, setAvailableMoves, setMessage, setGameOver } = useGame();
-    const renderBoard = flipped ? flipBoard(board) : board;
+    const { board, setBoard, availableMoves, activeSquare, playerColor, flipped, spectatorMode, curTurn, setCurTurn, moves, setMoves, setActiveSquare, setPromotionPiece, setAvailableMoves, setMessage, setGameOver, activeMoveIndex } = useGame();
+    const [renderBoard, setRenderBoard] = useState(flipped ? flipBoard(board) : board);
+    useEffect(() => {
+        setRenderBoard(flipped ? flipBoard(moves?.[activeMoveIndex]?.board || INITIALBOARDSETUP) : (moves?.[activeMoveIndex]?.board || INITIALBOARDSETUP));
+    }, [activeMoveIndex]);
     useEffect(() => {
         async function abc() {
             const lastMove = getLastMove(moves);
@@ -56,6 +59,7 @@ export default function Board({ onePlayer }) {
         return activeSquare;
     }
     const handleClick = ({ row, col, piece }, shouldPlayWithoutCheck = null, overridingParams = {}) => {
+        const board = getLastMove(moves)?.board || INITIALBOARDSETUP;
         const coordinate = { row, col };
         if (!shouldPlayWithoutCheck) {
             if (curTurn === WHITE) {
@@ -139,7 +143,7 @@ export default function Board({ onePlayer }) {
             return "bg-red-500";
         if (board[row][col] === PIECES.BLACK.KING && isBlackKingChecked(board))
             return "bg-red-500";
-        const lastMove = getLastMove(moves);
+        const lastMove = moves?.[activeMoveIndex];
         const shouldHover = (curTurn === WHITE && whitePieceAvailable(row, col, board)) || (availableMoves.some((item) => areCoordinatesEqual(item, coordinate)));
 
         if (lastMove && (areCoordinatesEqual(lastMove.from, coordinate) || areCoordinatesEqual(lastMove.to, coordinate))) {
@@ -172,7 +176,7 @@ export default function Board({ onePlayer }) {
     return (
         <div className={`flex flex-col ${curTurn !== playerColor && "pointer-events-none"} ${spectatorMode && "pointer-events-none"}`}>
             {renderBoard.map((row, rowIndex) => (
-                <div key={rowIndex} className="flex justify-center items-center cursor-pointer">
+                <div key={rowIndex} className={`flex justify-center items-center cursor-pointer ${activeMoveIndex===moves?.length-1 ?"":"pointer-events-none"}`}>
                     {row.map((item, colIndex) => {
                         const piece = mapSymbolToPiece(item);
                         const isWhiteSquare = (rowIndex + colIndex) % 2 == 0;
