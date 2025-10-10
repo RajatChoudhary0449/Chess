@@ -22,7 +22,7 @@ export default function JoinChoiceModal({ onClose, availableRights, onJoinWhite,
           {availableRights.includes(WHITE) &&
             <button
               onClick={onJoinWhite}
-              className="w-full bg-[#e0c097] hover:bg-[#d4ad7f] text-white font-semibold py-2 rounded"
+              className="w-full bg-[#a07556] hover:bg-[#8a5e46] text-white font-semibold py-2 rounded"
             >
               Join as White
             </button>

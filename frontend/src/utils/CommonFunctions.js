@@ -708,6 +708,16 @@ export const getFenPosition = (lastMove) => {
   const fen=`${fenPiecePlacement} ${fenActiveColor} ${fenCastlingRights} ${fenEnPassantTarget} ${fenLastPawnMoveOrCapture} ${fenFullMove}`;
   return fen;
 };
+export const threeFoldRepetation = (moves) => {
+  const lastMove = getLastMove(moves);
+  let count = 0;
+  if (areBoardsEqual(lastMove.board, INITIALBOARDSETUP)) count = count + 1;
+  for (let move of moves) {
+      if (areBoardsEqual(move.board, lastMove.board) && move.turn === lastMove.turn && move.castlingRights === lastMove.castlingRights)
+          count = count + 1;
+  }
+  return count >= 3;
+}
 export const playMove = (
   move,
   board,

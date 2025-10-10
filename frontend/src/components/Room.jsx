@@ -6,9 +6,8 @@ import useGame from "../hooks/useGame";
 import InformationModal from "./InformationModal";
 export default function Room() {
     const [inputId, setInputId] = useState("");
-    const [showModes, setShowModes] = useState(false);
-    const { availableRights, showInfoModal, setShowInfoModal, infoMessage, setInfoMessage } = useGame();
-    const nav = useNavigate()
+    const { availableRights, showInfoModal, setShowInfoModal, infoMessage, setInfoMessage, showModes,setShowModes } = useGame();
+    const nav = useNavigate();
     const handleBackPress = () => {
         nav("/");
     }
@@ -19,12 +18,16 @@ export default function Room() {
         if (inputId.length < 6) {
             setShowInfoModal(true);
             setInfoMessage("Invalid Room ID");
+            setShowModes(false);
         }
         else {
-            setShowModes(mode => !mode);
+            // setShowModes(mode => !mode);
             socket.emit("check_for_room", { id: inputId, source: "Room" });
         }
     }
+    useEffect(()=>{
+        if(showModes) setShowModes(false);
+    },[inputId]);
     const handleJoinWithMode = (color) => {
         socket.emit("join_room", { id: inputId, color });
         nav(`/room/${inputId}`);
@@ -53,13 +56,15 @@ export default function Room() {
                                 {availableRights.includes(WHITE) &&
                                     <div onClick={() => handleJoinWithMode(WHITE)} className="text-[#a07556] cursor-pointer">Join as White</div>
                                 }
+                                {availableRights.length > 1 &&
+                                    <div className="border-dashed border w-full h-[2px] border-[#a07556]"></div>
+                                }
                                 {availableRights.includes(BLACK) &&
                                     <>
-                                        <div className="border-dashed border w-full h-[2px] border-[#a07556]"></div>
                                         <div onClick={() => handleJoinWithMode(BLACK)} className="text-[#a07556] cursor-pointer">Join as Black</div>
                                     </>
                                 }
-                                <div className="border-dashed border w-full h-[2px] border-[#a07556]"></div>
+                                {availableRights.length > 0 && <div className="border-dashed border w-full h-[2px] border-[#a07556]"></div>}
                                 <div onClick={() => handleJoinWithMode("spectator")} className="text-[#a07556] cursor-pointer">Watch as spectator</div>
                             </div>
                         </div>

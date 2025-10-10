@@ -22,7 +22,8 @@ export const GameProvider = ({ children }) => {
   const [infoMessage, setInfoMessage] = useState("");
   const [availableRights, setAvailableRights] = useState([]);
   const [showJoinModal, setShowJoinModal] = useState(false);
-  const [activeMoveIndex, setActiveMoveIndex] = useState(0);
+  const [activeMoveIndex, setActiveMoveIndex] = useState(-1);
+  const [showModes, setShowModes] = useState(false);
   const flipped = playerColor === BLACK;
   const nav = useNavigate();
   const updateGameState = (moves) => {
@@ -39,7 +40,8 @@ export const GameProvider = ({ children }) => {
           setShowInfoModal(true);
           setInfoMessage(message);
         }, 0);
-        nav("/room");
+        if(source!=="Room") nav("/");
+        return;
       }
       else {
         if (room?.id?.length===6 && (!room[WHITE] || room[WHITE] === socket.id)) curRights.push(WHITE);
@@ -61,9 +63,12 @@ export const GameProvider = ({ children }) => {
         }
         else setShowJoinModal(true);
       }
+      else
+      {
+        setShowModes(cur=>!cur);
+      }
     }
     const onRoomCreationStatus=({status,id})=>{
-      console.log("recieved request")
       if(status)
       {
         nav(`/room/${id}`);
@@ -207,7 +212,9 @@ export const GameProvider = ({ children }) => {
     setShowJoinModal,
     flipped,
     activeMoveIndex,
-    setActiveMoveIndex
+    setActiveMoveIndex,
+    showModes,
+    setShowModes
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

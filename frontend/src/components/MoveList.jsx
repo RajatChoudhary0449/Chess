@@ -105,7 +105,7 @@ export default function MoveList({ val }) {
     const shouldDisable = spectatorMode || curTurn !== playerColor || usedDraw;
     return (
         <div className="h-[200px] md:h-[min(80vh,80vw)] lg:h-[min(88vh,88vw)] md:max-h-[min(80vh,80vw)] lg:max-h-[min(88vh,88vw)] w-full">
-            <div className={`md:w-full md:max-w-[220px] md:min-w-[200px] w-[90%] mx-auto px-4 h-full bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 ${spectatorMode ? "md:mt-11" : "md:mt-18"} rounded-md shadow-md flex flex-col`}>
+            <div className={`md:w-full md:max-w-[220px] md:min-w-[200px] w-[90dvw] max-w-[90dvw] mx-auto px-4 h-full bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 ${spectatorMode ? "md:mt-11" : "md:mt-18"} rounded-md shadow-md flex flex-col`}>
                 {!spectatorMode &&
                     <div className='flex justify-between gap-x-2 mb-2'>
                         <button className={` text-[16px] p-2 w-fit flex justify-center border border-white font-bold  transition duration-100 ${shouldDisable ? "pointer-none" : "hover:bg-white hover:scale-110 cursor-pointer"} disabled:opacity-50`} onClick={handleOfferDraw} disabled={shouldDisable}>Offer Draw</button>
@@ -114,14 +114,16 @@ export default function MoveList({ val }) {
                 }
                 {spectatorMode && <div>Best Move for <strong>{flipTurn(moves?.[activeMoveIndex]?.turn)}</strong>: <br></br><strong className='font-bold'>{`${val?.from}->${val?.to}`}</strong> </div>}
                 <div className="flex justify-between items-center mb-2">
-                    <div className='flex items-center md:gap-x-4 gap-x-6'>
+                    <div className='flex items-center w-full justify-between'>
                         <div className="font-semibold">Move List</div>
-                        <button className='p-2 md:bg-transparent bg-white text-[#444] hover:bg-white hover:text-[#444] rounded-full aspect-square' onClick={() => {
-                            setActiveMoveIndex((prev) => Math.max(prev - 1, 0));
-                        }}>{"<"}</button>
-                        <button className='p-2 hover:bg-white hover:text-[#444] rounded-full aspect-square' onClick={() => {
-                            setActiveMoveIndex((prev) => Math.min(prev + 1, moves.length - 1));
-                        }}>{">"}</button>
+                        <div className='flex md:gap-x-4 gap-x-6'>
+                            <button className='p-2 md:bg-transparent bg-white text-[#444] hover:bg-white hover:text-[#444] rounded-full aspect-square text-2xl font-semibold cursor-pointer' onClick={() => {
+                                setActiveMoveIndex((prev) => Math.max(prev - 1, 0));
+                            }}>{"<"}</button>
+                            <button className='p-2 md:bg-transparent bg-white text-[#444] hover:bg-white hover:text-[#444] rounded-full aspect-square text-2xl font-semibold cursor-pointer' onClick={() => {
+                                setActiveMoveIndex((prev) => Math.min(prev + 1, moves.length - 1));
+                            }}>{">"}</button>
+                        </div>
                     </div>
                     {moves.length > 0 && (
                         <div className="flex gap-x-2 text-white">
@@ -138,11 +140,11 @@ export default function MoveList({ val }) {
                         </div>
                     )}
                 </div>
-                <ul className="grid grid-cols-2 overflow-y-auto max-h-full">
+                <ul className="md:grid md:grid-cols-2 flex flex-row md:overflow-y-auto max-h-full  w-full scroll-smooth overflow-x-auto cursor-pointer">
                     {moves.map((cur, index) => (
                         <li key={index} ref={el => moveRefs.current[index] = el} className="flex gap-x-2 items-center justify-center text-sm pb-1" onClick={() => setActiveMoveIndex(index)}>
                             <div className={`w-[20px] text-center ${index % 2 === 1 && "hidden"}`}>{Math.ceil((index + 1) / 2) + ")"}</div>
-                            <span className={`md:py-2 md:px-1 px-2 py-2 rounded ${index === activeMoveIndex ? index % 2 === 0 ? "bg-white text-[#444]" : "bg-[#444] text-white" : ""}`}>{encode(cur.from.row, cur.from.col)} → {encode(cur.to.row, cur.to.col)}</span>
+                            <span className={`text-nowrap md:py-2 md:px-1 px-2 py-2 rounded ${index === activeMoveIndex ? index % 2 === 0 ? "bg-white text-[#444]" : "bg-[#444] text-white" : ""}`}>{encode(cur.from.row, cur.from.col)} → {encode(cur.to.row, cur.to.col)}</span>
                         </li>
                     ))}
                 </ul>

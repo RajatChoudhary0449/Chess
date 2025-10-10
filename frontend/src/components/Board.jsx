@@ -28,7 +28,7 @@ export default function Board({ onePlayer }) {
             try {
                 const response = await fetchEvaluation({ fen: getFenPosition(lastMove) });
                 const data = response;
-                console.log(data)
+                // console.log(data)
                 const { row: fromRow, col: fromCol } = decode(data?.from);
                 const { row: toRow, col: toCol } = decode(data?.to);
 

@@ -15,19 +15,11 @@ import JoinChoiceModal from "./JoinChoiceModal.jsx";
 import { BLACK, WHITE } from "../constants/constants.js";
 export default function Screen() {
     const { curTurn, setCurTurn, promotionPiece, setPromotionPiece, gameOver, setGameOver, board, setBoard, setMoves, message, setMessage, playerColor, spectatorMode, setSpectatorMode, drawWindow, showDrawWindow, showInfoModal, setShowInfoModal, infoMessage, availableRights, showJoinModal, setShowJoinModal } = useGame();
-    const [onePlayer, setOnePlayer] = useState(false);
     const [val, setVal] = useState();
     const { id } = useParams();
+    const onePlayer = id?.length !== 6;
     useEffect(() => {
-        if (id.length !== 6) {
-            setOnePlayer(true);
-        }
-        else {
-            setOnePlayer(false);
-        }
-    }, [id]);
-    useEffect(() => {
-        if (playerColor) return;
+        if (spectatorMode || playerColor) return;
         socket.emit("check_for_room", { id, source: "Screen" });
     }, []);
     const handlePromotion = (piece) => {
@@ -64,17 +56,17 @@ export default function Screen() {
             }
             {(playerColor || spectatorMode) &&
                 <>
-                    {gameOver && <GameOverModal gameOver={gameOver} message={message} viewBoard={viewBoard} setGameOver={setGameOver} setMessage={setMessage} />}
+                    {true && <GameOverModal gameOver={gameOver} message={message} viewBoard={viewBoard} setGameOver={setGameOver} setMessage={setMessage} roomId={id} />}
                     {drawWindow && <DrawWindowModal setShowModal={showDrawWindow} />}
                     <div className="flex md:flex-row flex-col md:gap-x-2 lg:gap-x-4 gap-y-4">
                         <div className="flex flex-col gap-y-2">
                             <InformationBlock />
                             <div className="flex md:flex-row flex-col gap-y-2 md:gap-x-4">
-                                {spectatorMode && <EvaluationBar val={val} setVal={setVal}/>}
+                                {spectatorMode && <EvaluationBar val={val} setVal={setVal} />}
                                 <Board onePlayer={onePlayer} />
                             </div>
                         </div>
-                        <MoveList val={val} setVal={setVal}/>
+                        <MoveList val={val} setVal={setVal} />
                     </div>
                 </>
             }
