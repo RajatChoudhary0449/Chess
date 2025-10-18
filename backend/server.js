@@ -13,8 +13,12 @@ const io = new Server(server, {
 });
 /* Room structure:
   id,
-  gameState,{player1,player2,moves}
-  spectators
+  white: socket.id || null,
+  black: socket.id || null,
+  gameStarted: boolean,
+  moves: [objects],
+  gameMode: [None, Blitz, Rapid, Bullet, Custom]
+  spectators: [socket.id],
 */
 
 const spreadToAll = ({ event, payload = "" }, socket) => {
@@ -70,6 +74,9 @@ const updateRoom = (room) => {
 const deleteRoom = (id) => {
   rooms = rooms.filter((allRoom) => allRoom.id !== id);
 };
+const isRoomFull = (room) => {
+  return room.white && room.black;
+};
 const removeFromRoom = (socket) => {
   const room = getRoomFromSocket(socket);
   if (!room) return;
@@ -85,19 +92,30 @@ io.on("connection", (socket) => {
   socket.on("create_room", ({ id, color }) => {
     if (rooms.find((room) => room.id === id)) {
       console.log("Room id already available");
-      socket.emit("room_creation_status",{status:false,id});
+      socket.emit("room_creation_status", { status: false, id });
       return;
     }
-    rooms.push({
+    const curRoom={
       id,
       white: color === "white" ? socket.id : null,
       black: color === "black" ? socket.id : null,
+      gameStarted: false,
       moves: [],
       spectators: [],
-    });
+      lastUpdatedTime: null,
+    };
     socket.emit("player_assignment", color);
-    socket.emit("update_game_state",[]);
-    socket.emit("room_creation_status",{status:true,id});
+    socket.emit("update_game_state", []);
+    socket.emit("room_creation_status", { status: true, id });
+    if(id.length===7)
+    {
+      curRoom.gameStarted = true;
+      setTimeout(() => {
+        socket.emit("start_clock", "white");
+        spreadToAll({ event: "start_clock", payload: "white" }, socket);
+      }, 5000);
+    }
+    rooms.push(curRoom);
   });
   socket.on("join_room", ({ id, color }) => {
     const room = rooms.find((room) => room.id === id);
@@ -111,6 +129,13 @@ io.on("connection", (socket) => {
     if (!["white", "black"].includes(color)) return;
     room[color] = socket.id;
     socket.emit("player_assignment", color);
+    if (isRoomFull(room) && !room.gameStarted) {
+      room.gameStarted = true;
+      setTimeout(() => {
+        socket.emit("start_clock", "white");
+        spreadToAll({ event: "start_clock", payload: "white" }, socket);
+      }, 5000);
+    }
     updateRoom(room);
   });
 
@@ -143,6 +168,10 @@ io.on("connection", (socket) => {
     const room = getRoomFromSocket(socket);
     if (!room) return;
     room.moves = [...room.moves, move];
+    room.lastUpdatedTime = Date.now();
+    const opponentTurn = move.turn === "white" ? "black" : "white";
+    socket.emit("start_clock", opponentTurn);
+    spreadToAll({ event: "start_clock", payload: opponentTurn }, socket);
     updateRoom(room);
   });
 

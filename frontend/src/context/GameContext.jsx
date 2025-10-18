@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import { createContext, useRef, useState } from "react";
 import { BLACK, INITIALBOARDSETUP, WHITE } from "../constants/constants.js";
 
 export const GameContext = createContext();
@@ -25,6 +25,10 @@ export const GameProvider = ({ children }) => {
   const [activeMoveIndex, setActiveMoveIndex] = useState(-1);
   const [showModes, setShowModes] = useState(false);
   const flipped = playerColor === BLACK;
+  const blackPlayerTimerRef = useRef();
+  const whitePlayerTimerRef = useRef();
+  const delayTimerRef=useRef();
+  const [gameStarted,setGameStarted]=useState(false);
   const nav = useNavigate();
   const updateGameState = (moves) => {
     setMoves(_ => moves);
@@ -66,6 +70,40 @@ export const GameProvider = ({ children }) => {
       else
       {
         setShowModes(cur=>!cur);
+      }
+    }
+    const onStartClock=(color,{increment,delay}={increment:2,delay:0})=>{
+      if(delayTimerRef?.current)
+      {
+        clearTimeout(delayTimerRef.current);
+        delayTimerRef.current=null;
+      }
+      if(!gameStarted) setGameStarted(true);
+      if((color===WHITE && whitePlayerTimerRef?.current?.isRunning()) || (color===BLACK && blackPlayerTimerRef?.current?.isRunning()))
+      {
+        return;
+      }
+      if(color===WHITE)
+      {
+        blackPlayerTimerRef.current.stopTimer();
+        whitePlayerTimerRef.current.incrementTimer(increment);
+        delayTimerRef.current=setTimeout(
+          ()=>{
+            whitePlayerTimerRef.current.resumeTimer();
+            delayTimerRef.current = null;
+          },delay*1000
+        )
+      }
+      else
+      {
+        whitePlayerTimerRef.current.stopTimer();
+        blackPlayerTimerRef.current.incrementTimer(increment);
+        delayTimerRef.current=setTimeout(
+          ()=>{
+            blackPlayerTimerRef.current.resumeTimer();
+            delayTimerRef.current = null;
+          },delay*1000
+        )
       }
     }
     const onRoomCreationStatus=({status,id})=>{
@@ -156,6 +194,7 @@ export const GameProvider = ({ children }) => {
     socket.on("draw_rejected", onDrawRejected);
     socket.on("availability_response", onAvailabilityResponse);
     socket.on("room_creation_status",onRoomCreationStatus)
+    socket.on("start_clock",onStartClock);
     return () => {
       socket.off("player_assignment", onPlayerAssignment);
       socket.off("opponent_move", onOpponentMove);
@@ -169,6 +208,7 @@ export const GameProvider = ({ children }) => {
       socket.off("draw_rejected", onDrawRejected);
       socket.off("availability_response", onAvailabilityResponse);
       socket.off("room_creation_status",onRoomCreationStatus);
+      socket.off("start_clock",onStartClock);
     };
   }, []);
   const applyPromotion = (move) => {
@@ -214,7 +254,11 @@ export const GameProvider = ({ children }) => {
     activeMoveIndex,
     setActiveMoveIndex,
     showModes,
-    setShowModes
+    setShowModes,
+    blackPlayerTimerRef,
+    whitePlayerTimerRef,
+    gameStarted,
+    setGameStarted
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
