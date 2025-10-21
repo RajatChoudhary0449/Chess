@@ -130,24 +130,22 @@ io.on("connection", (socket) => {
     socket.emit("room_creation_status", { status: true, id, time });
     if (id.length === 7) {
       curRoom.gameStarted = true;
-      setTimeout(() => {
-        socket.emit("start_clock", {
-          color: "white",
-          increment: curRoom.time.increment,
-          delay: curRoom.time.delay,
-        });
-        spreadToAll(
-          {
-            event: "start_clock",
-            payload: {
-              color: "white",
-              increment: curRoom.time.increment,
-              delay: curRoom.time.delay,
-            },
+      socket.emit("start_clock", {
+        color: "white",
+        increment: curRoom.time.increment,
+        delay: curRoom.time.delay,
+      });
+      spreadToAll(
+        {
+          event: "start_clock",
+          payload: {
+            color: "white",
+            increment: curRoom.time.increment,
+            delay: curRoom.time.delay,
           },
-          socket
-        );
-      }, 5000);
+        },
+        socket
+      );
     }
     rooms.push(curRoom);
   });
