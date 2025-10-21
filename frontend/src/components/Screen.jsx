@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import socket from "../socket.js";
 import { playMove, flipTurn, addMove, checkGameOver } from "../utils/CommonFunctions.js"
 import GameOverModal from "./GameOverModal.jsx";
@@ -13,11 +13,14 @@ import InformationModal from "./InformationModal.jsx";
 import { useParams } from "react-router-dom";
 import JoinChoiceModal from "./JoinChoiceModal.jsx";
 import { BLACK, WHITE } from "../constants/constants.js";
+import TimerWindow from "./TimerWindow.jsx";
 export default function Screen() {
-    const { curTurn, setCurTurn, promotionPiece, setPromotionPiece, gameOver, setGameOver, board, setBoard, setMoves, message, setMessage, playerColor, spectatorMode, setSpectatorMode, drawWindow, showDrawWindow, showInfoModal, setShowInfoModal, infoMessage, availableRights, showJoinModal, setShowJoinModal } = useGame();
+    const { curTurn, setCurTurn, promotionPiece, setPromotionPiece, gameOver, setGameOver, board, setBoard, setMoves, message, setMessage, playerColor, spectatorMode, setSpectatorMode, drawWindow, showDrawWindow, showInfoModal, setShowInfoModal, infoMessage, availableRights, showJoinModal, setShowJoinModal, flipped, blackPlayerTimerRef, whitePlayerTimerRef, timeMode } = useGame();
     const [val, setVal] = useState();
     const { id } = useParams();
     const onePlayer = id?.length !== 6;
+    // const blackPlayerTimerRef = useRef();
+    // const whitePlayerTimerRef = useRef();
     useEffect(() => {
         if (spectatorMode || playerColor) return;
         socket.emit("check_for_room", { id, source: "Screen" });
@@ -40,12 +43,25 @@ export default function Screen() {
         setSpectatorMode(true);
         setGameOver(false);
     }
+    const handleTimeOut = (color) => {
+        const message = `${color} wins by timeout!!`;
+        if (!onePlayer)
+            socket.emit("resign", { state: true, message: message });
+        setGameOver(true);
+        setMessage(message);
+    }
+    const handleJoinFromChoiceModal = (color) => {
+        socket.emit("join_room", { id, color });
+        setShowJoinModal(false);
+    }
     return (
         <div className="flex justify-center items-center flex-col h-[100dvh]" style={{ backgroundImage: `url("/icon.jpeg")` }}>
             {showJoinModal &&
                 <JoinChoiceModal onClose={() => setShowJoinModal(false)}
                     availableRights={availableRights}
-                    onJoinWhite={() => { socket.emit("join_room", { id, color: WHITE }); setShowJoinModal(false); }} onJoinBlack={() => { socket.emit("join_room", { id, color: BLACK }); setShowJoinModal(false); }} onSpectate={() => { socket.emit("join_room", { id, color: "spectator" }); setShowJoinModal(false); }}
+                    onJoinWhite={() => { handleJoinFromChoiceModal(WHITE) }}
+                    onJoinBlack={() => { handleJoinFromChoiceModal(BLACK) }}
+                    onSpectate={() => { handleJoinFromChoiceModal("spectator") }}
                 />}
             {showInfoModal &&
                 <InformationModal message={infoMessage} setShow={setShowInfoModal} position="top-right" />}
@@ -56,14 +72,26 @@ export default function Screen() {
             }
             {(playerColor || spectatorMode) &&
                 <>
-                    {true && <GameOverModal gameOver={gameOver} message={message} viewBoard={viewBoard} setGameOver={setGameOver} setMessage={setMessage} roomId={id} />}
+                    <GameOverModal gameOver={gameOver} message={message} viewBoard={viewBoard} setGameOver={setGameOver} setMessage={setMessage} roomId={id} />
                     {drawWindow && <DrawWindowModal setShowModal={showDrawWindow} />}
                     <div className="flex md:flex-row flex-col md:gap-x-2 lg:gap-x-4 gap-y-4">
                         <div className="flex flex-col gap-y-2">
                             <InformationBlock />
-                            <div className="flex md:flex-row flex-col gap-y-2 md:gap-x-4">
+                            <div className="flex md:flex-row flex-col gap-y-2 md:gap-x-4 text-white">
                                 {spectatorMode && <EvaluationBar val={val} setVal={setVal} />}
-                                <Board onePlayer={onePlayer} />
+                                <div className="flex flex-col">
+                                    <div className="flex justify-end mr-5">
+                                        {timeMode?.mode !== "None" &&
+                                            <TimerWindow ref={flipped ? whitePlayerTimerRef : blackPlayerTimerRef} time={timeMode?.initial * 60} color={flipped ? WHITE : BLACK} onTimerUp={() => handleTimeOut(flipped ? BLACK : WHITE)}></TimerWindow>
+                                        }
+                                    </div>
+                                    <Board onePlayer={onePlayer} />
+                                    <div className="flex justify-end mr-5">
+                                        {timeMode?.mode !== "None" &&
+                                            <TimerWindow ref={flipped ? blackPlayerTimerRef : whitePlayerTimerRef} time={timeMode?.initial * 60} color={flipped ? BLACK : WHITE} onTimerUp={() => handleTimeOut(flipped ? WHITE : BLACK)}></TimerWindow>
+                                        }
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <MoveList val={val} setVal={setVal} />

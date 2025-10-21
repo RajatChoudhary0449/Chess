@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import { createContext, useRef, useState } from "react";
 import { BLACK, INITIALBOARDSETUP, WHITE } from "../constants/constants.js";
 
 export const GameContext = createContext();
@@ -25,13 +25,25 @@ export const GameProvider = ({ children }) => {
   const [activeMoveIndex, setActiveMoveIndex] = useState(-1);
   const [showModes, setShowModes] = useState(false);
   const flipped = playerColor === BLACK;
+  const blackPlayerTimerRef = useRef();
+  const whitePlayerTimerRef = useRef();
+  const delayTimerRef=useRef();
+  const [gameStarted,setGameStarted]=useState(false);
   const nav = useNavigate();
+  const [timeMode,setTimeMode]=useState({initial:0,increment:0,delay:0});
   const updateGameState = (moves) => {
     setMoves(_ => moves);
     const updatedBoard = getLastMove(moves)?.board || INITIALBOARDSETUP;
     setBoard(_ => updatedBoard);
     setCurTurn(moves?.length % 2 === 0 ? WHITE : BLACK);
   }
+  useEffect(()=>{
+    if(gameOver) 
+    {
+      whitePlayerTimerRef?.current?.stopTimer();
+      blackPlayerTimerRef?.current?.stopTimer();
+    }
+  },[gameOver])
   useEffect(() => {
     const onAvailabilityResponse = ({ access, message, room, source }) => {
       const curRights = [];
@@ -68,7 +80,69 @@ export const GameProvider = ({ children }) => {
         setShowModes(cur=>!cur);
       }
     }
-    const onRoomCreationStatus=({status,id})=>{
+    const onStartClock=({color,increment=timeMode?.increment,delay=timeMode?.delay})=>{
+      if(!gameStarted) setGameStarted(true);
+      if(!whitePlayerTimerRef?.current) return;
+      if(delayTimerRef?.current)
+      {
+        clearTimeout(delayTimerRef.current);
+        delayTimerRef.current=null;
+      }
+      if((color===WHITE && whitePlayerTimerRef?.current?.isRunning()) || (color===BLACK && blackPlayerTimerRef?.current?.isRunning()))
+      {
+        return;
+      }
+      if(color===WHITE)
+      {
+        blackPlayerTimerRef.current.stopTimer();
+        whitePlayerTimerRef.current.incrementTimer(increment);
+        delayTimerRef.current=setTimeout(
+          ()=>{
+            whitePlayerTimerRef.current.resumeTimer();
+            delayTimerRef.current = null;
+          },delay*1000
+        )
+      }
+      else
+      {
+        whitePlayerTimerRef.current.stopTimer();
+        blackPlayerTimerRef.current.incrementTimer(increment);
+        delayTimerRef.current=setTimeout(
+          ()=>{
+            blackPlayerTimerRef.current.resumeTimer();
+            delayTimerRef.current = null;
+          },delay*1000
+        )
+      }
+    }
+    const onShowPreparationWindow=(time)=>{
+      // console.log(time);
+      setInfoMessage(`Your match will be starting soon, Prepare yourself`);
+      setShowInfoModal(true);
+    }
+    const onSetTime=({mode,initial,increment,delay})=>{
+      if(mode==="None")
+      {
+        setTimeMode((_)=>({mode,initial:-1,increment:0,delay:Infinity}))
+      }
+      else{
+        setTimeMode((_)=>({mode,initial,increment,delay}));
+        whitePlayerTimerRef.current.setTime(initial*60);
+        blackPlayerTimerRef.current.setTime(initial*60);
+      }
+    }
+    const onSetClock=({whiteTime,blackTime})=>{
+      if(whiteTime)
+      {
+        whitePlayerTimerRef?.current?.setTime(whiteTime);
+      }
+      if(blackTime)
+      {
+        blackPlayerTimerRef?.current?.setTime(blackTime);
+      }
+    }
+    const onRoomCreationStatus=({status,id,time})=>{
+      setTimeMode(time);
       if(status)
       {
         nav(`/room/${id}`);
@@ -77,7 +151,6 @@ export const GameProvider = ({ children }) => {
       {
         setInfoMessage("Room already exist");
         setShowInfoModal(true);
-        
       }
     }
     const onPlayerAssignment = (color) => {
@@ -156,6 +229,10 @@ export const GameProvider = ({ children }) => {
     socket.on("draw_rejected", onDrawRejected);
     socket.on("availability_response", onAvailabilityResponse);
     socket.on("room_creation_status",onRoomCreationStatus)
+    socket.on("start_clock",onStartClock);
+    socket.on("set_time",onSetTime);
+    socket.on("show_preparing_window",onShowPreparationWindow);
+    socket.on("set_clock",onSetClock);
     return () => {
       socket.off("player_assignment", onPlayerAssignment);
       socket.off("opponent_move", onOpponentMove);
@@ -169,6 +246,10 @@ export const GameProvider = ({ children }) => {
       socket.off("draw_rejected", onDrawRejected);
       socket.off("availability_response", onAvailabilityResponse);
       socket.off("room_creation_status",onRoomCreationStatus);
+      socket.off("start_clock",onStartClock);
+      socket.off("set_time",onSetTime);
+      socket.off("show_preparing_window",onShowPreparationWindow);
+      socket.off("set_clock",onSetClock);
     };
   }, []);
   const applyPromotion = (move) => {
@@ -214,7 +295,13 @@ export const GameProvider = ({ children }) => {
     activeMoveIndex,
     setActiveMoveIndex,
     showModes,
-    setShowModes
+    setShowModes,
+    blackPlayerTimerRef,
+    whitePlayerTimerRef,
+    gameStarted,
+    setGameStarted,
+    timeMode,
+    setTimeMode,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

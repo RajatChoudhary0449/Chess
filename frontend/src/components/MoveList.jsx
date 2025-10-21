@@ -104,7 +104,7 @@ export default function MoveList({ val }) {
     }
     const shouldDisable = spectatorMode || curTurn !== playerColor || usedDraw;
     return (
-        <div className="h-[200px] md:h-[min(80vh,80vw)] lg:h-[min(88vh,88vw)] md:max-h-[min(80vh,80vw)] lg:max-h-[min(88vh,88vw)] w-full">
+        <div className="h-[150px] md:h-[min(80vh,80vw)] lg:h-[min(88vh,88vw)] md:max-h-[min(80vh,80vw)] lg:max-h-[min(88vh,88vw)] w-full">
             <div className={`md:w-full md:max-w-[220px] md:min-w-[200px] w-[90dvw] max-w-[90dvw] mx-auto px-4 h-full bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 ${spectatorMode ? "md:mt-11" : "md:mt-18"} rounded-md shadow-md flex flex-col`}>
                 {!spectatorMode &&
                     <div className='flex justify-between gap-x-2 mb-2'>

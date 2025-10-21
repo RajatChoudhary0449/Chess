@@ -17,7 +17,7 @@ import socket from '../socket';
 import { useEffect, useState } from 'react';
 import { fetchEvaluation } from '../services/fetchEvaluation';
 export default function Board({ onePlayer }) {
-    const { board, setBoard, availableMoves, activeSquare, playerColor, flipped, spectatorMode, curTurn, setCurTurn, moves, setMoves, setActiveSquare, setPromotionPiece, setAvailableMoves, setMessage, setGameOver, activeMoveIndex } = useGame();
+    const { board, setBoard, availableMoves, activeSquare, playerColor, flipped, spectatorMode, curTurn, setCurTurn, moves, setMoves, setActiveSquare, setPromotionPiece, setAvailableMoves, setMessage, setGameOver, activeMoveIndex, whitePlayerTimerRef, blackPlayerTimerRef, gameStarted } = useGame();
     const [renderBoard, setRenderBoard] = useState(flipped ? flipBoard(board) : board);
     useEffect(() => {
         setRenderBoard(flipped ? flipBoard(moves?.[activeMoveIndex]?.board || INITIALBOARDSETUP) : (moves?.[activeMoveIndex]?.board || INITIALBOARDSETUP));
@@ -52,9 +52,9 @@ export default function Board({ onePlayer }) {
             }
         }
         const isItBotTurn = playerColor && onePlayer && playerColor !== curTurn;
-        if (onePlayer && isItBotTurn)
+        if (onePlayer && isItBotTurn && gameStarted)
             abc();
-    }, [curTurn]);
+    }, [curTurn, gameStarted]);
     const getActiveSquare = () => {
         return activeSquare;
     }
@@ -116,8 +116,9 @@ export default function Board({ onePlayer }) {
             if (castlingRights === "") castlingRights = "-";
 
             const fullMove = Math.ceil((moves.length + 1) / 2);
-
-            const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCapturing, promotedTo: null, isCastling, isPromotion, turn: curTurn, board: updatedBoard, castlingRights, enPassantTarget, lastPawnMoveOrCapture, fullMove };
+            const whiteTime = whitePlayerTimerRef?.current?.getTime();
+            const blackTime = blackPlayerTimerRef?.current?.getTime();
+            const curMove = { from: { row: activeSquare.row, col: activeSquare.col }, piece, to: { row, col }, isCapturing, promotedTo: null, isCastling, isPromotion, turn: curTurn, board: updatedBoard, castlingRights, enPassantTarget, lastPawnMoveOrCapture, fullMove, whiteTime, blackTime };
             if (isPromotion) {
                 setPromotionPiece({ move: curMove, turn: curTurn });
             }
@@ -174,9 +175,9 @@ export default function Board({ onePlayer }) {
         return result;
     }
     return (
-        <div className={`flex flex-col ${curTurn !== playerColor && "pointer-events-none"} ${spectatorMode && "pointer-events-none"}`}>
+        <div className={`flex flex-col ${curTurn !== playerColor && "pointer-events-none"} ${(spectatorMode || !gameStarted) && "pointer-events-none"}`}>
             {renderBoard.map((row, rowIndex) => (
-                <div key={rowIndex} className={`flex justify-center items-center cursor-pointer ${activeMoveIndex===moves?.length-1 ?"":"pointer-events-none"}`}>
+                <div key={rowIndex} className={`flex justify-center items-center cursor-pointer ${activeMoveIndex === moves?.length - 1 ? "" : "pointer-events-none"}`}>
                     {row.map((item, colIndex) => {
                         const piece = mapSymbolToPiece(item);
                         const isWhiteSquare = (rowIndex + colIndex) % 2 == 0;
@@ -186,7 +187,7 @@ export default function Board({ onePlayer }) {
                             curTurn === playerColor && handleClick({ row: flipped ? flip(rowIndex) : rowIndex, col: flipped ? flip(colIndex) : colIndex, piece: flipped ? board[flip(rowIndex)][flip(colIndex)] : item })
                         }
                         }
-                            className={`max-h-[min(11vh,11vw)] max-w-[min(11vh,11vw)] md:w-[min(10vh,10vw)] md:h-[min(10vh,10vw)] lg:w-[min(11vh,11vw)] lg:h-[min(11vh,11vw)] w-[50px] h-[50px] flex justify-center items-center relative ${getBackground(isWhiteSquare, flipped ? flip(rowIndex) : rowIndex, flipped ? flip(colIndex) : colIndex)} ${isWhiteSquare ? "text-[#5c3a1e]" : "text-[#fdf6e3]"} md:text-[16px] text-[10px]`}
+                            className={`max-h-[min(10vh,10vw)] max-w-[min(10vh,10vw)] md:w-[min(9vh,9vw)] md:h-[min(9vh,9vw)] lg:w-[min(10vh,10vw)] lg:h-[min(10vh,10vw)] w-[50px] h-[50px] flex justify-center items-center relative outline-none ${getBackground(isWhiteSquare, flipped ? flip(rowIndex) : rowIndex, flipped ? flip(colIndex) : colIndex)} ${isWhiteSquare ? "text-[#5c3a1e]" : "text-[#fdf6e3]"} md:text-[16px] text-[10px]`}
                             aria-label={`Square ${String.fromCharCode(97 + (flipped ? 7 - colIndex : colIndex))}${flipped ? (rowIndex + 1) : (8 - rowIndex)}${item ? ` with ${item}` : ''}`}
                         >
 

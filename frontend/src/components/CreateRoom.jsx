@@ -5,16 +5,15 @@ import whiteKing from "../assets/whiteKing.png"
 import blackKing from "../assets/blackKing.png"
 import socket from "../socket"
 import { BLACK, WHITE } from '../constants/constants';
-import useMobileView from '../hooks/useMobileView';
 import useGame from '../hooks/useGame';
 import InformationModal from "./InformationModal";
 export default function CreateRoom() {
-    const timeModes = [{ name: "initial", value: 5, title: "Initial Time" }, { name: "increment", value: 2, title: "Increment" }, { name: "delay", value: 0, title: "Delay" }]
-    const listOfAlphabets=`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`;
+    const timeModesCustom = [{ name: "initial", value: 5, title: "Initial(min)" }, { name: "increment", value: 2, title: "Increment(sec)" }, { name: "delay", value: 0, title: "Delay(sec)" }]
+    const listOfAlphabets = `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`;
     //const colours=[WHITE,BLACK,"Random"];
+    const timeModesData = [{ name: "None", value: "None" }, { name: "Bullet", value: "Bullet(2+1)" }, { name: "Blitz", value: "Blitz(5+5)" }, { name: "Rapid", value: "Rapid(15+10)" }, { name: "Custom", value: "Custom" }];
     const generateRoomId = customAlphabet(listOfAlphabets, 6);
-    const [input, setInput] = useState({ id: generateRoomId(), color: WHITE, time: { initial: 5, increment: 2, delay: 0 } });
-    const isMobile = useMobileView();
+    const [input, setInput] = useState({ id: generateRoomId(), color: WHITE, timeMode: "Blitz(5+5)", time: { initial: 5, increment: 5, delay: 0 } });
     const nav = useNavigate();
     const { infoMessage, setInfoMessage, showInfoModal, setShowInfoModal } = useGame();
     const [messageType, setMessageType] = useState("warning");
@@ -23,9 +22,8 @@ export default function CreateRoom() {
         if (id.length !== 6) {
             return { status: false, message: "Id should be of 6 alphanumeric characters", messageType: "warning" };
         }
-        else if(![...id].every(item=>listOfAlphabets.includes(item)))
-        {
-            return {status: false,message: "Id should only contain alphanumeric characters", messageType: "warning"};
+        else if (![...id].every(item => listOfAlphabets.includes(item))) {
+            return { status: false, message: "Id should only contain alphanumeric characters", messageType: "warning" };
         }
         return { status: true, message: "Copy the room ID or share this URL to invite your opponent.", messageType: "success" };
     }
@@ -42,7 +40,7 @@ export default function CreateRoom() {
         setShowInfoModal(true);
         setInfoMessage(message);
         if (!status) return;
-        socket.emit("create_room", { id: input.id, color: input.color === "Random" ? generateRandomColor() : input.color });
+        socket.emit("create_room", { id: input.id, color: input.color === "Random" ? generateRandomColor() : input.color, time: { mode: input.timeMode, ...input.time } });
     }
     const handleTimeChange = (e) => {
         if (Number(e.target.value) >= 60) {
@@ -70,6 +68,22 @@ export default function CreateRoom() {
             value = 0;
         }
         setInput(ip => ({ ...ip, time: { ...ip.time, [name]: value } }));
+    }
+    const handleTimeModeChange = (e) => {
+        const val = e.target.value;
+        if (val === "Custom" || val === "None") {
+            setInput({ ...input, timeMode: val });
+        }
+        else {
+            let initialTime = 0, increment = 0, delay = 0;
+            switch (val) {
+                case 'Bullet(2+1)': initialTime = 2; increment = 1; break;
+                case 'Blitz(5+5)': initialTime = 5; increment = 5; break;
+                case 'Rapid(15+10)': initialTime = 15; increment = 10; break;
+                default: delay = -1;
+            }
+            setInput({ ...input, time: { ...input.time, initial: initialTime, increment, delay: delay !== -1 ? delay : input.time.delay }, timeMode: val });
+        }
     }
     return (
         <div className='h-[100dvh] w-full flex justify-center items-center ' style={{ backgroundImage: `url("/icon.jpeg")` }}>
@@ -101,7 +115,7 @@ export default function CreateRoom() {
                             </button>
                         </div>
                         <div>
-                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color === BLACK ? "border-purple-700" : "border-[#444] hover:scale-105"} bg-[#444]`} onClick={() => setInput(input => ({ ...input, color: BLACK }))}>
+                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color === BLACK ? "border-purple-700" : "border-[#444] hover:border-white hover:scale-105"} bg-[#444]`} onClick={() => setInput(input => ({ ...input, color: BLACK }))}>
                                 <img src={blackKing} alt={"blackKing"}></img>
                             </button>
                         </div>
@@ -109,25 +123,32 @@ export default function CreateRoom() {
                 </div>
                 <div className='flex items-center gap-x-4'>
                     <p className='text-xl md:text-2xl font-semibold'>Time Control</p>
-                    <div className='flex gap-x-4 md:flex-row flex-col'>
-                        {timeModes.map((item, index) => (
-                            <div className='w-[110px] aspect-square flex flex-col items-center' key={index}>
-                                <p className='text-xl'>{item.title}</p>
-                                <div className='flex md:flex-col flex-row items-center'>
+                    <select className='text-xl outline-none py-2' onChange={handleTimeModeChange} value={input.timeMode}>
+                        {timeModesData.map(item => (
+                            <option key={item.value} className='text-[#444] text-xl' value={item.value}>{item.value}</option>
+                        ))}
+                    </select>
+                </div>
+                {input.timeMode === "Custom" &&
+                    <div className='grid grid-cols-3 gap-x-4 mt-4'>
+                        {timeModesCustom.map((item, index) => (
+                            <div className='w-[140px] aspect-square flex flex-col items-center text-white' key={index}>
+                                <p className='text-xl text-nowrap'>{item.title}</p>
+                                <div className='flex items-center'>
                                     <button onClick={() => {
                                         const val = { name: item.name, value: input["time"][item.name] };
-                                        isMobile ? handleDecrement(val) : handleIncrement(val);
-                                    }} className='cursor-pointer hover:bg-amber-100 p-2 rounded-full hover:text-[#444] aspect-square'><i className={`fas ${isMobile ? "fa-angle-left" : "fa-angle-up"}`}></i></button>
+                                        handleDecrement(val);
+                                    }} className='cursor-pointer hover:bg-amber-100 p-2 rounded-full hover:text-[#444] aspect-square'><i className={`fas fa-angle-left`}></i></button>
                                     <input className='px-2 py-2 outline-none max-w-full text-center font-bold text-2xl w-[50px]' name={item.name} value={input.time[item.name]} maxLength={2} onChange={handleTimeChange}></input>
                                     <button onClick={() => {
                                         const val = { name: item.name, value: input["time"][item.name] };
-                                        isMobile ? handleIncrement(val) : handleDecrement(val);
-                                    }} className='cursor-pointer hover:bg-amber-100 p-2 rounded-full hover:text-[#444] aspect-square'><i className={`fas ${isMobile ? "fa-angle-right" : "fa-angle-down"}`}></i></button>
+                                        handleIncrement(val);
+                                    }} className='cursor-pointer hover:bg-amber-100 p-2 rounded-full hover:text-[#444] aspect-square'><i className={`fas fa-angle-right`}></i></button>
                                 </div>
                             </div>
                         ))}
                     </div>
-                </div>
+                }
                 <button className='text-2xl bg-purple-700 py-2 rounded-xl font-semibold mt-4 cursor-pointer' onClick={handleRoomCreation}>Start the game</button>
             </div>
         </div>

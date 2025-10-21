@@ -1,16 +1,32 @@
 import { useState } from 'react'
+import { customAlphabet } from 'nanoid';
 import { useNavigate } from "react-router-dom"
 import whiteKing from "../assets/whiteKing.png"
 import blackKing from "../assets/blackKing.png"
+import socket from "../socket"
 import { BLACK, WHITE } from '../constants/constants';
-import { customAlphabet } from 'nanoid';
-import socket from '../socket';
-import useMobileView from '../hooks/useMobileView';
-export default function Options() {
-    const timeModes = [{ name: "initial", value: 5, title: "Initial Time" }, { name: "increment", value: 2, title: "Increment" }, { name: "delay", value: 0, title: "Delay" }]
-    const [input, setInput] = useState({ color: WHITE, time: { initial: 5, increment: 2, delay: 0 } });
-    const generateRoomId = customAlphabet(`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`, 7);
+import useGame from '../hooks/useGame';
+import InformationModal from "./InformationModal";
+export default function CreateRoom() {
+    const timeModesCustom = [{ name: "initial", value: 5, title: "Initial(min)" }, { name: "increment", value: 2, title: "Increment(sec)" }, { name: "delay", value: 0, title: "Delay(sec)" }]
+    const listOfAlphabets = `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`;
+    //const colours=[WHITE,BLACK,"Random"];
+    const timeModesData = [{ name: "None", value: "None" }, { name: "Bullet", value: "Bullet(2+1)" }, { name: "Blitz", value: "Blitz(5+5)" }, { name: "Rapid", value: "Rapid(15+10)" }, { name: "Custom", value: "Custom" }];
+    const generateRoomId = customAlphabet(listOfAlphabets, 7);
+    const [input, setInput] = useState({ id: generateRoomId(), color: WHITE, timeMode: "Blitz(5+5)", time: { initial: 5, increment: 5, delay: 0 } });
     const nav = useNavigate();
+    const { infoMessage, setInfoMessage, showInfoModal, setShowInfoModal } = useGame();
+    const [messageType, setMessageType] = useState("warning");
+    const validateRoomId = () => {
+        const { id } = input;
+        if (id.length !== 7) {
+            return { status: false, message: "Id should be of 7 alphanumeric characters", messageType: "warning" };
+        }
+        else if (![...id].every(item => listOfAlphabets.includes(item))) {
+            return { status: false, message: "Id should only contain alphanumeric characters", messageType: "warning" };
+        }
+        return { status: true, message: "Copy the room ID or share this URL to invite your opponent.", messageType: "success" };
+    }
     const generateRandomColor = () => {
         let cur = Math.floor(Math.random() * 2);
         return cur === 0 ? WHITE : BLACK
@@ -18,34 +34,67 @@ export default function Options() {
     const handleBackPress = () => {
         nav("/");
     }
-    const isMobile=useMobileView();
     const handleRoomCreation = () => {
-        const id = generateRoomId();
-        socket.emit("create_room", { id, color: input.color === "Random" ? generateRandomColor() : input.color });
+        const { status, message, messageType: mt } = validateRoomId();
+        setMessageType(mt);
+        setShowInfoModal(true);
+        setInfoMessage(message);
+        if (!status) return;
+        socket.emit("create_room", { id: input.id, color: input.color === "Random" ? generateRandomColor() : input.color, time:{mode:input.timeMode,...input.time} });
     }
     const handleTimeChange = (e) => {
         if (Number(e.target.value) >= 60) {
-            return;
+            setShowInfoModal(true);
+            setInfoMessage(`${e.target.name} cannot be greater than or equal to 60`);
+            setInput(ip => ({ ...ip, time: { ...ip.time, [e.target.name]: 59 } }));
         }
-        if (!isNaN(Number(e.target.value))) {
+        else
             setInput(ip => ({ ...ip, time: { ...ip.time, [e.target.name]: (Number(e.target.value)) } }))
-        }
     }
     const handleIncrement = ({ name, value }) => {
         value++;
-        if (value >= 60) return;
+        if (value >= 60) {
+            setShowInfoModal(true);
+            setInfoMessage(`${name} cannot be greater than or equal to 60`);
+            value = 59;
+        }
         setInput(ip => ({ ...ip, time: { ...ip.time, [name]: value } }));
     }
     const handleDecrement = ({ name, value }) => {
         value--;
-        if (value <= 0) return;
+        if (value < 0) {
+            setShowInfoModal(true);
+            setInfoMessage(`${name} cannot be less than 0`);
+            value = 0;
+        }
         setInput(ip => ({ ...ip, time: { ...ip.time, [name]: value } }));
+    }
+    const handleTimeModeChange = (e) => {
+        const val = e.target.value;
+        if (val === "Custom" || val === "None") {
+            setInput({ ...input, timeMode: val });
+        }
+        else {
+            let initialTime = 0, increment = 0, delay = 0;
+            switch (val) {
+                case 'Bullet(2+1)': initialTime = 2; increment = 1; break;
+                case 'Blitz(5+5)': initialTime = 5; increment = 5; break;
+                case 'Rapid(15+10)': initialTime = 15; increment = 10; break;
+                default: delay = -1;
+            }
+            setInput({ ...input, time: { ...input.time, initial: initialTime, increment, delay: delay !== -1 ? delay : input.time.delay }, timeMode: val });
+        }
     }
     return (
         <div className='h-[100dvh] w-full flex justify-center items-center ' style={{ backgroundImage: `url("/icon.jpeg")` }}>
-            <div className='h-auto bg-[#444] text-white rounded-2xl px-4 py-4 flex flex-col gap-y-4'>
-            <button className="flex justify-start text-white bg-[#444] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
-                <div className='flex items-center justify-between'>
+            {showInfoModal && <InformationModal setShow={setShowInfoModal} message={infoMessage} position='top-right' messageType={messageType} />}
+            <div className='h-auto bg-[#444] text-white rounded-2xl px-2 md:px-4 py-4 flex flex-col gap-y-4 max-w-[90dvw]'>
+                <button className="flex justify-start text-white bg-[#444] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
+                <div className='flex items-center gap-x-4'>
+                    <p className='md:text-2xl font-semibold text-xl text-nowrap'>Room ID</p>
+                    <input value={input.id} onChange={(e) => setInput(input => ({ ...input, id: e.target.value }))} className="outline-none px-4 py-4 text-xl" spellCheck={false} maxLength={7}></input>
+                </div>
+                <div className='flex items-center gap-x-4'>
                     <p className='text-xl md:text-2xl font-semibold'>Color</p>
                     <div className='flex gap-x-4 items-center'>
                         <div>
@@ -66,7 +115,7 @@ export default function Options() {
                             </button>
                         </div>
                         <div>
-                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color === BLACK ? "border-purple-700" : "border-[#444] hover:scale-105"} bg-[#444]`} onClick={() => setInput(input => ({ ...input, color: BLACK }))}>
+                            <button className={`h-[60px] md:h-[110px] aspect-square flex justify-center items-center relative border-4 ${input.color === BLACK ? "border-purple-700" : "border-[#444] hover:border-white hover:scale-105"} bg-[#444]`} onClick={() => setInput(input => ({ ...input, color: BLACK }))}>
                                 <img src={blackKing} alt={"blackKing"}></img>
                             </button>
                         </div>
@@ -74,25 +123,32 @@ export default function Options() {
                 </div>
                 <div className='flex items-center gap-x-4'>
                     <p className='text-xl md:text-2xl font-semibold'>Time Control</p>
-                    <div className='flex gap-x-4 md:flex-row flex-col'>
-                        {timeModes.map((item, index) => (
-                            <div className='w-[110px] aspect-square flex flex-col items-center' key={index}>
-                                <p className='text-xl'>{item.title}</p>
-                                <div className='flex md:flex-col flex-row items-center'>
+                    <select className='text-xl outline-none py-2' onChange={handleTimeModeChange} value={input.timeMode}>
+                        {timeModesData.map(item => (
+                            <option key={item.value} className='text-[#444] text-xl' value={item.value}>{item.value}</option>
+                        ))}
+                    </select>
+                </div>
+                {input.timeMode === "Custom" &&
+                    <div className='grid grid-cols-3 gap-x-4 mt-4'>
+                        {timeModesCustom.map((item, index) => (
+                            <div className='w-[140px] flex flex-col items-center text-white ' key={index}>
+                                <p className='text-xl text-nowrap'>{item.title}</p>
+                                <div className='flex items-center'>
                                     <button onClick={() => {
                                         const val = { name: item.name, value: input["time"][item.name] };
-                                        isMobile ? handleDecrement(val) : handleIncrement(val);
-                                    }} className='cursor-pointer hover:bg-amber-100 p-2 rounded-full hover:text-[#444] aspect-square'><i className={`fas ${isMobile ? "fa-angle-left" : "fa-angle-up"}`}></i></button>
+                                        handleDecrement(val);
+                                    }} className='cursor-pointer hover:bg-amber-100 p-2 rounded-full hover:text-[#444] aspect-square'><i className={`fas fa-angle-left`}></i></button>
                                     <input className='px-2 py-2 outline-none max-w-full text-center font-bold text-2xl w-[50px]' name={item.name} value={input.time[item.name]} maxLength={2} onChange={handleTimeChange}></input>
                                     <button onClick={() => {
                                         const val = { name: item.name, value: input["time"][item.name] };
-                                        isMobile ? handleIncrement(val) : handleDecrement(val);
-                                    }} className='cursor-pointer hover:bg-amber-100 p-2 rounded-full hover:text-[#444] aspect-square'><i className={`fas ${isMobile ? "fa-angle-right" : "fa-angle-down"}`}></i></button>
+                                        handleIncrement(val);
+                                    }} className='cursor-pointer hover:bg-amber-100 p-2 rounded-full hover:text-[#444] aspect-square'><i className={`fas fa-angle-right`}></i></button>
                                 </div>
                             </div>
                         ))}
                     </div>
-                </div>
+                }
                 <button className='text-2xl bg-purple-700 py-2 rounded-xl font-semibold mt-4 cursor-pointer' onClick={handleRoomCreation}>Start the game</button>
             </div>
         </div>

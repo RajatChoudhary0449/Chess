@@ -16,7 +16,7 @@ function GameOverModal({ gameOver, message, viewBoard, setGameOver, setMessage, 
                 className="bg-amber-400 hover:bg-amber-500 text-white hover:scale-105 px-4 py-2 rounded"
                 onClick={viewBoard}
               >
-                View Board
+                Join as spectator
               </button>
               <button
                 className="bg-blue-500 hover:bg-blue-600 text-white hover:scale-105 px-4 py-2 rounded"

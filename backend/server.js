@@ -13,8 +13,12 @@ const io = new Server(server, {
 });
 /* Room structure:
   id,
-  gameState,{player1,player2,moves}
-  spectators
+  white: socket.id || null,
+  black: socket.id || null,
+  gameStarted: boolean,
+  moves: [objects],
+  time: Object with mode:None | Blitz | Rapid | Bullet | Custom, hr, min, sec,
+  spectators: [socket.id],
 */
 
 const spreadToAll = ({ event, payload = "" }, socket) => {
@@ -49,7 +53,18 @@ const sendToOpponent = ({ event, payload = "" }, socket) => {
     opponent.emit(event, payload);
   }
 };
-
+// const getTimeFromTimeMode = (mode) => {
+//   if (mode === "Custom" || mode === "None")
+//     return { initial: 10, increment: 0, delay: Infinity };
+//   else if (mode === "Bullet(2+1)") {
+//     return { initial: 2, increment: 1, delay: 0 };
+//   } else if (mode === "Blitz(5+5)") {
+//     return { initial: 5, increment: 5, delay: 0 };
+//   } //mode=Rapid(15+10)
+//   else {
+//     return { initial: 15, increment: 10, delay: 0 };
+//   }
+// };
 const handleGameOver = (socket) => {
   const room = getRoomFromSocket(socket);
   if (room) deleteRoom(room.id);
@@ -70,6 +85,9 @@ const updateRoom = (room) => {
 const deleteRoom = (id) => {
   rooms = rooms.filter((allRoom) => allRoom.id !== id);
 };
+const isRoomFull = (room) => {
+  return room.white && room.black;
+};
 const removeFromRoom = (socket) => {
   const room = getRoomFromSocket(socket);
   if (!room) return;
@@ -82,22 +100,47 @@ const removeFromRoom = (socket) => {
 
 // Handle connections
 io.on("connection", (socket) => {
-  socket.on("create_room", ({ id, color }) => {
+  socket.on("create_room", ({ id, color, time }) => {
     if (rooms.find((room) => room.id === id)) {
       console.log("Room id already available");
-      socket.emit("room_creation_status",{status:false,id});
+      socket.emit("room_creation_status", { status: false, id, time });
       return;
     }
-    rooms.push({
+    const curRoom = {
       id,
       white: color === "white" ? socket.id : null,
       black: color === "black" ? socket.id : null,
+      gameStarted: false,
       moves: [],
+      time,
       spectators: [],
-    });
+      lastUpdatedTime: new Date(),
+    };
     socket.emit("player_assignment", color);
-    socket.emit("update_game_state",[]);
-    socket.emit("room_creation_status",{status:true,id});
+    socket.emit("update_game_state", []);
+    socket.emit("room_creation_status", { status: true, id, time });
+    if (id.length === 7) {
+      curRoom.gameStarted = true;
+      setTimeout(() => {
+        socket.emit("start_clock", {
+          color: "white",
+          increment: curRoom.time.increment,
+          delay: curRoom.time.delay,
+        });
+        spreadToAll(
+          {
+            event: "start_clock",
+            payload: {
+              color: "white",
+              increment: curRoom.time.increment,
+              delay: curRoom.time.delay,
+            },
+          },
+          socket
+        );
+      }, 5000);
+    }
+    rooms.push(curRoom);
   });
   socket.on("join_room", ({ id, color }) => {
     const room = rooms.find((room) => room.id === id);
@@ -111,6 +154,55 @@ io.on("connection", (socket) => {
     if (!["white", "black"].includes(color)) return;
     room[color] = socket.id;
     socket.emit("player_assignment", color);
+    socket.emit("set_time", room.time);
+    const curTurn = room.moves?.length % 2 === 0 ? "white" : "black";
+    let whiteTime = room.time.initial * 60,
+      blackTime = room.time.initial * 60;
+    if (room.moves.length > 0) {
+      const { whiteTime: wt, blackTime: bt } =
+        room.moves[room.moves.length - 1];
+      whiteTime = wt.hour * 3600 + wt.min * 60 + wt.sec;
+      blackTime = bt.hour * 3600 + bt.min * 60 + bt.sec;
+    }
+    if(room.gameStarted)
+    {
+      if (curTurn === "white") {
+        whiteTime -= Math.floor((new Date() - room.lastUpdatedTime) / 1000);
+      } else {
+        blackTime -= Math.floor((new Date() - room.lastUpdatedTime) / 1000);
+      }
+    }
+    socket.emit("set_clock", { whiteTime, blackTime });
+    if (isRoomFull(room) && !room.gameStarted) {
+      room.gameStarted = true;
+      socket.emit("show_preparing_window", 10);
+      sendToOpponent({ event: "show_preparing_window", payload: 10 }, socket);
+      setTimeout(() => {
+        socket.emit("start_clock", {
+          color: "white",
+          increment: room.time.increment,
+          delay: room.time.delay,
+        });
+        spreadToAll(
+          {
+            event: "start_clock",
+            payload: {
+              color: "white",
+              increment: room.time.increment,
+              delay: room.time.delay,
+            },
+          },
+          socket
+        );
+        room.lastUpdatedTime = new Date();
+      }, 10000);
+    } else {
+      socket.emit("start_clock", {
+        color: curTurn,
+        increment: room.time.increment,
+        delay: room.time.delay,
+      });
+    }
     updateRoom(room);
   });
 
@@ -143,6 +235,31 @@ io.on("connection", (socket) => {
     const room = getRoomFromSocket(socket);
     if (!room) return;
     room.moves = [...room.moves, move];
+    // console.log(move, new Date() - room.lastUpdatedTime);
+    const { whiteTime: wt, blackTime: bt } = move;
+    const whiteTime = wt.hour * 3600 + wt.min * 60 + wt.sec;
+    const blackTime = bt.hour * 3600 + wt.min * 60 + wt.sec;
+    if (move.turn === "white")
+      sendToOpponent({ event: "set_clock", payload: { whiteTime } }, socket);
+    else sendToOpponent({ event: "set_clock", payload: { blackTime } }, socket);
+    room.lastUpdatedTime = new Date();
+    const opponentTurn = move.turn === "white" ? "black" : "white";
+    socket.emit("start_clock", {
+      color: opponentTurn,
+      increment: room.time.increment,
+      delay: room.time.delay,
+    });
+    spreadToAll(
+      {
+        event: "start_clock",
+        payload: {
+          color: opponentTurn,
+          increment: room.time.increment,
+          delay: room.time.delay,
+        },
+      },
+      socket
+    );
     updateRoom(room);
   });
 
