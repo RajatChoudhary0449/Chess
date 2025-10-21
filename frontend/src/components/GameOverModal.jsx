@@ -11,15 +11,15 @@ function GameOverModal({ gameOver, message, viewBoard, setGameOver, setMessage, 
             <p className="text-lg mb-6">
               {message}
             </p>
-            <div className="flex gap-x-2">
+            <div className="flex md:flex-row flex-col gap-2">
               <button
-                className="bg-amber-400 hover:bg-amber-500 text-white hover:scale-105 px-4 py-2 rounded"
+                className="bg-amber-400 hover:bg-amber-500 text-white hover:scale-105 px-4 py-2 rounded md:font-normal font-bold"
                 onClick={viewBoard}
               >
                 Join as spectator
               </button>
               <button
-                className="bg-blue-500 hover:bg-blue-600 text-white hover:scale-105 px-4 py-2 rounded"
+                className="bg-blue-500 hover:bg-blue-600 text-white hover:scale-105 px-4 py-2 rounded md:font-normal font-bold"
                 onClick={() => { setGameOver(false); setMessage(""); nav(`/${roomId.length === 6 ? "room" : "lobby"}/create`); }}
               >
                 Play Again

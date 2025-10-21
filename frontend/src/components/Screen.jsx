@@ -44,7 +44,7 @@ export default function Screen() {
         setGameOver(false);
     }
     const handleTimeOut = (color) => {
-        const message = `${color} wins by timeout!!`;
+        const message = `${color.slice(0,1).toUpperCase()+color.slice(1)} wins by timeout!!`;
         if (!onePlayer)
             socket.emit("resign", { state: true, message: message });
         setGameOver(true);
