@@ -1,8 +1,17 @@
 const express = require("express");
 const http = require("http");
+const cors = require("cors");
 const { Server } = require("socket.io");
 const app = express();
 const server = http.createServer(app);
+
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "https://chess-ten-beta.vercel.app"],
+    methods: ["GET", "POST"],
+    credentials: true,
+  })
+);
 
 // Create socket server
 const io = new Server(server, {
@@ -164,8 +173,7 @@ io.on("connection", (socket) => {
       whiteTime = wt.hour * 3600 + wt.min * 60 + wt.sec;
       blackTime = bt.hour * 3600 + bt.min * 60 + bt.sec;
     }
-    if(room.gameStarted)
-    {
+    if (room.gameStarted) {
       if (curTurn === "white") {
         whiteTime -= Math.floor((new Date() - room.lastUpdatedTime) / 1000);
       } else {
