@@ -248,7 +248,7 @@ io.on("connection", (socket) => {
     // console.log(move, new Date() - room.lastUpdatedTime);
     const { whiteTime: wt, blackTime: bt } = move;
     const whiteTime = wt.hour * 3600 + wt.min * 60 + wt.sec;
-    const blackTime = bt.hour * 3600 + wt.min * 60 + wt.sec;
+    const blackTime = bt.hour * 3600 + bt.min * 60 + bt.sec;
     if (move.turn === "white")
       sendToOpponent({ event: "set_clock", payload: { whiteTime } }, socket);
     else sendToOpponent({ event: "set_clock", payload: { blackTime } }, socket);

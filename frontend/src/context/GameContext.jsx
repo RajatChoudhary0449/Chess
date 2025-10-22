@@ -31,6 +31,7 @@ export const GameProvider = ({ children }) => {
   const delayTimerRef = useRef();
   const [gameStarted, setGameStarted] = useState(false);
   const nav = useNavigate();
+  const [pendingStart, setPendingStart] = useState(null);
   const [timeMode, setTimeMode] = useState({ initial: 0, increment: 0, delay: 0 });
   const updateGameState = (moves) => {
     setMoves(_ => moves);
@@ -45,6 +46,46 @@ export const GameProvider = ({ children }) => {
     }
   }, [gameOver])
   useEffect(() => {
+    if (whitePlayerTimerRef.current && pendingStart) {
+      onStartClock({ ...pendingStart });
+    }
+  }, [whitePlayerTimerRef.current, pendingStart]);
+  const onStartClock = ({ color, increment = timeMode?.increment, delay = timeMode?.delay }) => {
+    if (!gameStarted) setGameStarted(true);
+    if (!whitePlayerTimerRef?.current || !blackPlayerTimerRef?.current) {
+      setPendingStart({ color, increment, delay });
+      return;
+    }
+    if (pendingStart) setPendingStart(null);
+    if (delayTimerRef?.current) {
+      clearTimeout(delayTimerRef.current);
+      delayTimerRef.current = null;
+    }
+    if ((color === WHITE && whitePlayerTimerRef?.current?.isRunning()) || (color === BLACK && blackPlayerTimerRef?.current?.isRunning())) {
+      return;
+    }
+    if (color === WHITE) {
+      blackPlayerTimerRef.current.stopTimer();
+      whitePlayerTimerRef.current.incrementTimer(increment);
+      delayTimerRef.current = setTimeout(
+        () => {
+          whitePlayerTimerRef.current.resumeTimer();
+          delayTimerRef.current = null;
+        }, delay * 1000
+      )
+    }
+    else {
+      whitePlayerTimerRef.current.stopTimer();
+      blackPlayerTimerRef.current.incrementTimer(increment);
+      delayTimerRef.current = setTimeout(
+        () => {
+          blackPlayerTimerRef.current.resumeTimer();
+          delayTimerRef.current = null;
+        }, delay * 1000
+      )
+    }
+  }
+  useEffect(() => {
     const onAvailabilityResponse = ({ access, message, room, source }) => {
       const curRights = [];
       if (!access) {
@@ -55,7 +96,7 @@ export const GameProvider = ({ children }) => {
         return;
       }
       else {
-        const onePlayer=(room.players===1);
+        const onePlayer = (room.players === 1);
         if (!onePlayer && (!room[WHITE] || room[WHITE] === socket.id)) curRights.push(WHITE);
         if (onePlayer && room.moves.length % 2 === 0 && !room[WHITE]) curRights.push(WHITE);
         if (!onePlayer && (!room[BLACK] || room[BLACK] === socket.id)) curRights.push(BLACK);
@@ -75,40 +116,17 @@ export const GameProvider = ({ children }) => {
         else setShowJoinModal(true);
       }
       else {
-        setShowModes(cur => !cur);
+        if (curRights.length > 0) {
+          setShowModes(cur => !cur);
+        }
+        else {
+          socket.emit("join_room", { id: room.id, color: "spectator" });
+          showNotification({ message: `Congrats, you are joined as a spectator`, type: MESSAGE_TYPES.SUCCESS })
+          nav(`/room/${room.id}`);
+        }
       }
     }
-    const onStartClock = ({ color, increment = timeMode?.increment, delay = timeMode?.delay }) => {
-      if (!gameStarted) setGameStarted(true);
-      if (!whitePlayerTimerRef?.current || !blackPlayerTimerRef?.current) return;
-      if (delayTimerRef?.current) {
-        clearTimeout(delayTimerRef.current);
-        delayTimerRef.current = null;
-      }
-      if ((color === WHITE && whitePlayerTimerRef?.current?.isRunning()) || (color === BLACK && blackPlayerTimerRef?.current?.isRunning())) {
-        return;
-      }
-      if (color === WHITE) {
-        blackPlayerTimerRef.current.stopTimer();
-        whitePlayerTimerRef.current.incrementTimer(increment);
-        delayTimerRef.current = setTimeout(
-          () => {
-            whitePlayerTimerRef.current.resumeTimer();
-            delayTimerRef.current = null;
-          }, delay * 1000
-        )
-      }
-      else {
-        whitePlayerTimerRef.current.stopTimer();
-        blackPlayerTimerRef.current.incrementTimer(increment);
-        delayTimerRef.current = setTimeout(
-          () => {
-            blackPlayerTimerRef.current.resumeTimer();
-            delayTimerRef.current = null;
-          }, delay * 1000
-        )
-      }
-    }
+
     const onShowPreparationWindow = (time) => {
       // console.log(time);
       showNotification({ message: `Your match will be starting soon, Prepare yourself`, type: MESSAGE_TYPES.SUCCESS, duration: time });
