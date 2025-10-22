@@ -1,35 +1,44 @@
 import { BLACK, PIECES, WHITE } from "../constants/constants.js";
 import socket from "../socket.js";
-export const getAllPossibleMoves = ({ row, col, piece }, board, moves) => {
+export const getAllPossibleMoves = ({
+  row,
+  col,
+  piece,
+  board,
+  moves,
+  premove,
+}) => {
   const lastMove = getLastMove(moves);
+  const whiteObj = { isWhite: false, row, col, board, premove };
+  const blackObj = { isWhite: true, row, col, board, premove };
   switch (piece) {
     // Black pieces
     case PIECES.BLACK.ROOK:
-      return getAllRookMovements(false, { row, col }, board);
+      return getAllRookMovements(whiteObj);
     case PIECES.BLACK.KNIGHT:
-      return getAllKnightMovements(false, { row, col }, board);
+      return getAllKnightMovements(whiteObj);
     case PIECES.BLACK.BISHOP:
-      return getAllBishopMovements(false, { row, col }, board);
+      return getAllBishopMovements(whiteObj);
     case PIECES.BLACK.QUEEN:
-      return getAllQueenMovements(false, { row, col }, board);
+      return getAllQueenMovements(whiteObj);
     case PIECES.BLACK.KING:
-      return getAllKingMovements(false, { row, col }, board, true, moves);
+      return getAllKingMovements({ ...whiteObj, moves });
     case PIECES.BLACK.PAWN:
-      return getAllPawnMovements(false, { row, col }, board, true, lastMove);
+      return getAllPawnMovements({ ...whiteObj, lastMove });
 
     // White pieces
     case PIECES.WHITE.ROOK:
-      return getAllRookMovements(true, { row, col }, board);
+      return getAllRookMovements(blackObj);
     case PIECES.WHITE.KNIGHT:
-      return getAllKnightMovements(true, { row, col }, board);
+      return getAllKnightMovements(blackObj);
     case PIECES.WHITE.BISHOP:
-      return getAllBishopMovements(true, { row, col }, board);
+      return getAllBishopMovements(blackObj);
     case PIECES.WHITE.QUEEN:
-      return getAllQueenMovements(true, { row, col }, board);
+      return getAllQueenMovements(blackObj);
     case PIECES.WHITE.KING:
-      return getAllKingMovements(true, { row, col }, board, true, moves);
+      return getAllKingMovements({ ...blackObj, moves });
     case PIECES.WHITE.PAWN:
-      return getAllPawnMovements(true, { row, col }, board, true, lastMove);
+      return getAllPawnMovements({ ...blackObj, lastMove });
 
     default:
       return [];
@@ -39,7 +48,7 @@ export const encode = (row, col) => {
   return `${String.fromCharCode("a".charCodeAt(0) + col)}${8 - row}`;
 };
 export const decode = (square) => {
-  const col = square.charCodeAt(0) - "a".charCodeAt(0);  
+  const col = square.charCodeAt(0) - "a".charCodeAt(0);
   const row = 8 - parseInt(square[1]);
   return { row, col };
 };
@@ -61,11 +70,11 @@ export const flipTurn = (curTurn) => {
 export const inRange = (item) => {
   return item >= 0 && item < 8;
 };
-export const isPiece=(item)=>{
-  return item.length>0;
-}
+export const isPiece = (item) => {
+  return item.length > 0;
+};
 export const addMove = (move, moves) => {
-  return [...moves,move];
+  return [...moves, move];
 };
 export const canEnPassant = (lastMove, { curRow, curCol }) => {
   if (!lastMove) return false;
@@ -78,10 +87,7 @@ export const canEnPassant = (lastMove, { curRow, curCol }) => {
   );
 };
 export const pieceAvailable = (row, col, board) => {
-  return (
-    inRange(row) &&  inRange(col) &&
-    board[row][col].length > 0
-  );
+  return inRange(row) && inRange(col) && board[row][col].length > 0;
 };
 export const whitePieceAvailable = (row, col, board) => {
   return (
@@ -98,14 +104,20 @@ export const blackPieceAvailable = (row, col, board) => {
 export const flipBoard = (board) => {
   return [...board.map((item) => [...item].reverse())].reverse();
 };
-export const getAllRookMovements = (
+export const getAllRookMovements = ({
   isWhite,
-  { row, col },
+  row,
+  col,
   board,
-  validateKingSafety = true
-) => {
+  validateKingSafety = true,
+  premove = false,
+}) => {
   const allMoves = [];
   for (let i = row - 1; i >= 0; i--) {
+    if (premove) {
+      allMoves.push({ row: i, col });
+      continue;
+    }
     if (!pieceAvailable(i, col, board)) allMoves.push({ row: i, col });
     else if (
       isWhite
@@ -117,6 +129,10 @@ export const getAllRookMovements = (
     } else break;
   }
   for (let i = row + 1; i < 8; i++) {
+    if (premove) {
+      allMoves.push({ row: i, col });
+      continue;
+    }
     if (!pieceAvailable(i, col, board)) allMoves.push({ row: i, col });
     else if (
       isWhite
@@ -128,6 +144,10 @@ export const getAllRookMovements = (
     } else break;
   }
   for (let i = col - 1; i >= 0; i--) {
+    if (premove) {
+      allMoves.push({ row, col: i });
+      continue;
+    }
     if (!pieceAvailable(row, i, board)) allMoves.push({ row, col: i });
     else if (
       isWhite
@@ -139,6 +159,10 @@ export const getAllRookMovements = (
     } else break;
   }
   for (let i = col + 1; i < 8; i++) {
+    if (premove) {
+      allMoves.push({ row, col: i });
+      continue;
+    }
     if (!pieceAvailable(row, i, board)) allMoves.push({ row, col: i });
     else if (
       isWhite
@@ -149,7 +173,7 @@ export const getAllRookMovements = (
       break;
     } else break;
   }
-  if (!validateKingSafety) return allMoves;
+  if (!validateKingSafety || premove) return allMoves;
   const selectedMove = filterCheckMovesOut(
     { row, col },
     allMoves,
@@ -158,12 +182,14 @@ export const getAllRookMovements = (
   );
   return selectedMove;
 };
-export const getAllKnightMovements = (
+export const getAllKnightMovements = ({
   isWhite,
-  { row, col },
+  row,
+  col,
   board,
-  validateKingSafety = true
-) => {
+  validateKingSafety = true,
+  premove = false,
+}) => {
   const allMoves = [];
 
   const knightMoves = [
@@ -182,6 +208,10 @@ export const getAllKnightMovements = (
     const newCol = col + dy;
 
     if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+      if (premove) {
+        allMoves.push({ row: newRow, col: newCol });
+        continue;
+      }
       if (
         !pieceAvailable(newRow, newCol, board) ||
         (isWhite
@@ -191,7 +221,7 @@ export const getAllKnightMovements = (
         allMoves.push({ row: newRow, col: newCol });
     }
   }
-  if (!validateKingSafety) return allMoves;
+  if (!validateKingSafety || premove) return allMoves;
   const selectedMove = filterCheckMovesOut(
     { row, col },
     allMoves,
@@ -200,18 +230,20 @@ export const getAllKnightMovements = (
   );
   return selectedMove;
 };
-export const getAllBishopMovements = (
+export const getAllBishopMovements = ({
   isWhite,
-  { row, col },
+  row,
+  col,
   board,
-  validateKingSafety = true
-) => {
+  validateKingSafety = true,
+  premove = false,
+}) => {
   const allMoves = [];
-  for (
-    let i = 1;
-    Math.min(row - i, col - i) >= 0 && Math.max(row - i, col - i) < 8;
-    i++
-  ) {
+  for (let i = 1; inRange(row - i) && inRange(col - i); i++) {
+    if (premove) {
+      allMoves.push({ row: row - i, col: col - i });
+      continue;
+    }
     if (!pieceAvailable(row - i, col - i, board))
       allMoves.push({ row: row - i, col: col - i });
     else if (
@@ -223,11 +255,11 @@ export const getAllBishopMovements = (
       break;
     } else break;
   }
-  for (
-    let i = 1;
-    Math.min(row - i, col + i) >= 0 && Math.max(row - i, col + i) < 8;
-    i++
-  ) {
+  for (let i = 1; inRange(row - i) && inRange(col + i); i++) {
+    if (premove) {
+      allMoves.push({ row: row - i, col: col + i });
+      continue;
+    }
     if (!pieceAvailable(row - i, col + i, board))
       allMoves.push({ row: row - i, col: col + i });
     else if (
@@ -239,11 +271,11 @@ export const getAllBishopMovements = (
       break;
     } else break;
   }
-  for (
-    let i = 1;
-    Math.min(row + i, col - i) >= 0 && Math.max(row + i, col - i) < 8;
-    i++
-  ) {
+  for (let i = 1; inRange(row + i) && inRange(col - i); i++) {
+    if (premove) {
+      allMoves.push({ row: row + i, col: col - i });
+      continue;
+    }
     if (!pieceAvailable(row + i, col - i, board))
       allMoves.push({ row: row + i, col: col - i });
     else if (
@@ -255,11 +287,11 @@ export const getAllBishopMovements = (
       break;
     } else break;
   }
-  for (
-    let i = 1;
-    Math.min(row + i, col + i) >= 0 && Math.max(row + i, col + i) < 8;
-    i++
-  ) {
+  for (let i = 1; inRange(row + i) && inRange(col + i); i++) {
+    if (premove) {
+      allMoves.push({ row: row + i, col: col + i });
+      continue;
+    }
     if (!pieceAvailable(row + i, col + i, board))
       allMoves.push({ row: row + i, col: col + i });
     else if (
@@ -271,7 +303,7 @@ export const getAllBishopMovements = (
       break;
     } else break;
   }
-  if (!validateKingSafety) return allMoves;
+  if (!validateKingSafety || premove) return allMoves;
   const selectedMove = filterCheckMovesOut(
     { row, col },
     allMoves,
@@ -280,31 +312,53 @@ export const getAllBishopMovements = (
   );
   return selectedMove;
 };
-export const getAllQueenMovements = (
+export const getAllQueenMovements = ({
   isWhite,
-  { row, col },
-  board,
-  validateKingSafety = true
-) => {
-  return [
-    ...getAllBishopMovements(isWhite, { row, col }, board, validateKingSafety),
-    ...getAllRookMovements(isWhite, { row, col }, board, validateKingSafety),
-  ];
-};
-export const getAllKingMovements = (
-  isWhite,
-  { row, col },
+  row,
+  col,
   board,
   validateKingSafety = true,
-  moves
-) => {
+  premove = false,
+}) => {
+  return [
+    ...getAllBishopMovements({
+      isWhite,
+      row,
+      col,
+      board,
+      validateKingSafety,
+      premove,
+    }),
+    ...getAllRookMovements({
+      isWhite,
+      row,
+      col,
+      board,
+      validateKingSafety,
+      premove,
+    }),
+  ];
+};
+export const getAllKingMovements = ({
+  isWhite,
+  row,
+  col,
+  board,
+  validateKingSafety = true,
+  moves,
+  premove = false,
+}) => {
   const allMoves = [];
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
       let curRow = row + i;
       let curCol = col + j;
       if (i === 0 && j === 0) continue;
-      if (Math.min(curRow, curCol) >= 0 && Math.max(curRow, curCol) < 8) {
+      if (inRange(curRow) && inRange(curCol)) {
+        if (premove) {
+          allMoves.push({ row: curRow, col: curCol });
+          continue;
+        }
         if (
           !pieceAvailable(curRow, curCol, board) ||
           (isWhite
@@ -316,7 +370,20 @@ export const getAllKingMovements = (
       }
     }
   }
-  if (!validateKingSafety) return allMoves;
+  if (premove) {
+    if (isWhite) {
+      if (canWhiteKingCastleShortRight(board, moves))
+        allMoves.push({ row: 7, col: 6 });
+      if (canWhiteKingCastleLongRight(board, moves))
+        allMoves.push({ row: 7, col: 2 });
+    } else {
+      if (canBlackKingCastleShortRight(board, moves))
+        allMoves.push({ row: 0, col: 6 });
+      if (canBlackKingCastleLongRight(board, moves))
+        allMoves.push({ row: 0, col: 2 });
+    }
+  }
+  if (!validateKingSafety || premove) return allMoves;
   if (isWhite) {
     if (canWhiteKingCastleShort(board, moves))
       allMoves.push({ row: 7, col: 6 });
@@ -334,46 +401,53 @@ export const getAllKingMovements = (
   );
   return selectedMove;
 };
-export const getAllPawnMovements = (
+export const getAllPawnMovements = ({
   isWhite,
-  { row, col },
+  row,
+  col,
   board,
   validateKingSafety = true,
-  lastMove
-) => {
+  lastMove,
+  premove = false,
+}) => {
   const allMoves = [];
   if (
     inRange(isWhite ? row - 1 : row + 1) &&
-    !pieceAvailable(isWhite ? row - 1 : row + 1, col, board)
+    (premove || !pieceAvailable(isWhite ? row - 1 : row + 1, col, board))
   )
     allMoves.push({ row: isWhite ? row - 1 : row + 1, col });
   if (
     (isWhite ? row === 6 : row === 1) &&
-    !pieceAvailable(isWhite ? row - 1 : row + 1, col, board) &&
-    !pieceAvailable(isWhite ? row - 2 : row + 2, col, board)
+    (premove ||
+      (!pieceAvailable(isWhite ? row - 1 : row + 1, col, board) &&
+        !pieceAvailable(isWhite ? row - 2 : row + 2, col, board)))
   )
     allMoves.push({ row: isWhite ? row - 2 : row + 2, col });
   if (inRange(isWhite ? row - 1 : row + 1)) {
     if (
-      inRange(col - 1) && isWhite
-        ? blackPieceAvailable(isWhite ? row - 1 : row + 1, col - 1, board)
-        : whitePieceAvailable(isWhite ? row - 1 : row + 1, col - 1, board)
+      inRange(col - 1) &&
+      (premove ||
+        (isWhite
+          ? blackPieceAvailable(isWhite ? row - 1 : row + 1, col - 1, board)
+          : whitePieceAvailable(isWhite ? row - 1 : row + 1, col - 1, board)))
     )
       allMoves.push({ row: isWhite ? row - 1 : row + 1, col: col - 1 });
     if (
-      inRange(col + 1) && isWhite
-        ? blackPieceAvailable(isWhite ? row - 1 : row + 1, col + 1, board)
-        : whitePieceAvailable(isWhite ? row - 1 : row + 1, col + 1, board)
+      inRange(col + 1) &&
+      (premove ||
+        (isWhite
+          ? blackPieceAvailable(isWhite ? row - 1 : row + 1, col + 1, board)
+          : whitePieceAvailable(isWhite ? row - 1 : row + 1, col + 1, board)))
     )
       allMoves.push({ row: isWhite ? row - 1 : row + 1, col: col + 1 });
   }
-  if (canEnPassant(lastMove, { curRow: row, curCol: col })) {
+  if (canEnPassant(lastMove, { curRow: row, curCol: col }) && !premove) {
     allMoves.push({
       row: isWhite ? row - 1 : row + 1,
       col: lastMove.to.col,
     });
   }
-  if (!validateKingSafety) return allMoves;
+  if (!validateKingSafety || premove) return allMoves;
   const selectedMove = filterCheckMovesOut(
     { row, col },
     allMoves,
@@ -392,77 +466,52 @@ export const getPieceCoordinates = (piece, board) => {
 };
 export const getAllWhiteMoves = (board, validateKingSafety = true) => {
   let allAvailableMoves = [];
+  const whiteObj = {
+    isWhite: true,
+    board,
+    validateKingSafety,
+  };
   for (let it of Object.values(PIECES.WHITE)) {
     switch (it) {
       case PIECES.WHITE.PAWN:
         allAvailableMoves = allAvailableMoves.concat(
           ...getPieceCoordinates(PIECES.WHITE.PAWN, board).map((item) =>
-            getAllPawnMovements(
-              true,
-              { row: item.row, col: item.col },
-              board,
-              validateKingSafety
-            )
+            getAllPawnMovements({ ...whiteObj, row: item.row, col: item.col })
           )
         );
         break;
       case PIECES.WHITE.ROOK:
         allAvailableMoves = allAvailableMoves.concat(
           ...getPieceCoordinates(PIECES.WHITE.ROOK, board).map((item) =>
-            getAllRookMovements(
-              true,
-              { row: item.row, col: item.col },
-              board,
-              validateKingSafety
-            )
+            getAllRookMovements({ ...whiteObj, row: item.row, col: item.col })
           )
         );
         break;
       case PIECES.WHITE.KNIGHT:
         allAvailableMoves = allAvailableMoves.concat(
           ...getPieceCoordinates(PIECES.WHITE.KNIGHT, board).map((item) =>
-            getAllKnightMovements(
-              true,
-              { row: item.row, col: item.col },
-              board,
-              validateKingSafety
-            )
+            getAllKnightMovements({ ...whiteObj, row: item.row, col: item.col })
           )
         );
         break;
       case PIECES.WHITE.BISHOP:
         allAvailableMoves = allAvailableMoves.concat(
           ...getPieceCoordinates(PIECES.WHITE.BISHOP, board).map((item) =>
-            getAllBishopMovements(
-              true,
-              { row: item.row, col: item.col },
-              board,
-              validateKingSafety
-            )
+            getAllBishopMovements({ ...whiteObj, row: item.row, col: item.col })
           )
         );
         break;
       case PIECES.WHITE.QUEEN:
         allAvailableMoves = allAvailableMoves.concat(
           ...getPieceCoordinates(PIECES.WHITE.QUEEN, board).map((item) =>
-            getAllQueenMovements(
-              true,
-              { row: item.row, col: item.col },
-              board,
-              validateKingSafety
-            )
+            getAllQueenMovements({ ...whiteObj, row: item.row, col: item.col })
           )
         );
         break;
       case PIECES.WHITE.KING:
         allAvailableMoves = allAvailableMoves.concat(
           ...getPieceCoordinates(PIECES.WHITE.KING, board).map((item) =>
-            getAllKingMovements(
-              true,
-              { row: item.row, col: item.col },
-              board,
-              validateKingSafety
-            )
+            getAllKingMovements({ ...whiteObj, row: item.row, col: item.col })
           )
         );
         break;
@@ -475,77 +524,52 @@ export const getAllWhiteMoves = (board, validateKingSafety = true) => {
 };
 export const getAllBlackMoves = (board, validateKingSafety = true) => {
   let allAvailableMoves = [];
+  const blackObj = {
+    isWhite: false,
+    board,
+    validateKingSafety,
+  };
   for (let it of Object.values(PIECES.BLACK)) {
     switch (it) {
       case PIECES.BLACK.PAWN:
         allAvailableMoves = allAvailableMoves.concat(
           ...getPieceCoordinates(PIECES.BLACK.PAWN, board).map((item) =>
-            getAllPawnMovements(
-              false,
-              { row: item.row, col: item.col },
-              board,
-              validateKingSafety
-            )
+            getAllPawnMovements({ ...blackObj, row: item.row, col: item.col })
           )
         );
         break;
       case PIECES.BLACK.ROOK:
         allAvailableMoves = allAvailableMoves.concat(
           ...getPieceCoordinates(PIECES.BLACK.ROOK, board).map((item) =>
-            getAllRookMovements(
-              false,
-              { row: item.row, col: item.col },
-              board,
-              validateKingSafety
-            )
+            getAllRookMovements({ ...blackObj, row: item.row, col: item.col })
           )
         );
         break;
       case PIECES.BLACK.KNIGHT:
         allAvailableMoves = allAvailableMoves.concat(
           ...getPieceCoordinates(PIECES.BLACK.KNIGHT, board).map((item) =>
-            getAllKnightMovements(
-              false,
-              { row: item.row, col: item.col },
-              board,
-              validateKingSafety
-            )
+            getAllKnightMovements({ ...blackObj, row: item.row, col: item.col })
           )
         );
         break;
       case PIECES.BLACK.BISHOP:
         allAvailableMoves = allAvailableMoves.concat(
           ...getPieceCoordinates(PIECES.BLACK.BISHOP, board).map((item) =>
-            getAllBishopMovements(
-              false,
-              { row: item.row, col: item.col },
-              board,
-              validateKingSafety
-            )
+            getAllBishopMovements({ ...blackObj, row: item.row, col: item.col })
           )
         );
         break;
       case PIECES.BLACK.QUEEN:
         allAvailableMoves = allAvailableMoves.concat(
           ...getPieceCoordinates(PIECES.BLACK.QUEEN, board).map((item) =>
-            getAllQueenMovements(
-              false,
-              { row: item.row, col: item.col },
-              board,
-              validateKingSafety
-            )
+            getAllQueenMovements({ ...blackObj, row: item.row, col: item.col })
           )
         );
         break;
       case PIECES.BLACK.KING:
         allAvailableMoves = allAvailableMoves.concat(
           ...getPieceCoordinates(PIECES.BLACK.KING, board).map((item) =>
-            getAllKingMovements(
-              false,
-              { row: item.row, col: item.col },
-              board,
-              validateKingSafety
-            )
+            getAllKingMovements({ ...blackObj, row: item.row, col: item.col })
           )
         );
         break;
@@ -608,12 +632,12 @@ export const isBlackKingChecked = (board) => {
   );
 };
 export const getLastMove = (moves) => {
-  return moves?.length > 0 ? moves[moves.length-1] : null;
+  return moves?.length > 0 ? moves[moves.length - 1] : null;
 };
-export const convertToPascal=(name)=>{
+export const convertToPascal = (name) => {
   if (typeof name !== "string") return "";
-  return name.slice(0,1).toUpperCase()+name.slice(1).toLowerCase();
-}
+  return name.slice(0, 1).toUpperCase() + name.slice(1).toLowerCase();
+};
 export const checkForInsufficientMaterial = (whitePieces, blackPieces) => {
   //King vs King
   if (whitePieces.length === 1 && blackPieces.length === 1) return true;
@@ -676,40 +700,39 @@ export const checkGameOver = (updatedBoard) => {
   }
   return { state: false, message: "" };
 };
-export const getFenPiecePlacementRow=(row)=>{
-  let count=0,fen="";
-  for(let col=0;col<row.length;col++)
-  {
-    if(isPiece(row[col]))
-    {
-      if(count>0)
-      {
-        fen+=count;
-        count=0;
+export const getFenPiecePlacementRow = (row) => {
+  let count = 0,
+    fen = "";
+  for (let col = 0; col < row.length; col++) {
+    if (isPiece(row[col])) {
+      if (count > 0) {
+        fen += count;
+        count = 0;
       }
-      fen+=row[col];
-    }
-    else count++;
+      fen += row[col];
+    } else count++;
   }
-  if(count>0) fen+=count;
+  if (count > 0) fen += count;
   return fen;
-}
+};
 export const getFenPiecePlacement = (board) => {
-  return board.slice().map((item)=>getFenPiecePlacementRow(item)).join('/');
+  return board
+    .slice()
+    .map((item) => getFenPiecePlacementRow(item))
+    .join("/");
 };
 export const getFenPosition = (lastMove) => {
-  if(!lastMove)
-  {
-    return "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  if (!lastMove) {
+    return "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
   }
-  const fenPiecePlacement=getFenPiecePlacement(lastMove.board);
-  const fenActiveColor=flipTurn(lastMove.turn)?.slice(0,1).toLowerCase();
-  const fenCastlingRights=lastMove.castlingRights;
-  const fenEnPassantTarget="-";
+  const fenPiecePlacement = getFenPiecePlacement(lastMove.board);
+  const fenActiveColor = flipTurn(lastMove.turn)?.slice(0, 1).toLowerCase();
+  const fenCastlingRights = lastMove.castlingRights;
+  const fenEnPassantTarget = "-";
   //lastMove.enPassantTarget;
-  const fenLastPawnMoveOrCapture=lastMove.lastPawnMoveOrCapture;
-  const fenFullMove=lastMove.fullMove;
-  const fen=`${fenPiecePlacement} ${fenActiveColor} ${fenCastlingRights} ${fenEnPassantTarget} ${fenLastPawnMoveOrCapture} ${fenFullMove}`;
+  const fenLastPawnMoveOrCapture = lastMove.lastPawnMoveOrCapture;
+  const fenFullMove = lastMove.fullMove;
+  const fen = `${fenPiecePlacement} ${fenActiveColor} ${fenCastlingRights} ${fenEnPassantTarget} ${fenLastPawnMoveOrCapture} ${fenFullMove}`;
   return fen;
 };
 export const threeFoldRepetation = (moves) => {
@@ -717,11 +740,15 @@ export const threeFoldRepetation = (moves) => {
   let count = 0;
   if (areBoardsEqual(lastMove.board, INITIALBOARDSETUP)) count = count + 1;
   for (let move of moves) {
-      if (areBoardsEqual(move.board, lastMove.board) && move.turn === lastMove.turn && move.castlingRights === lastMove.castlingRights)
-          count = count + 1;
+    if (
+      areBoardsEqual(move.board, lastMove.board) &&
+      move.turn === lastMove.turn &&
+      move.castlingRights === lastMove.castlingRights
+    )
+      count = count + 1;
   }
   return count >= 3;
-}
+};
 export const playMove = (
   move,
   board,
@@ -879,7 +906,7 @@ export const canBlackKingCastleLong = (board, moves) => {
 
   return true;
 };
-export const canWhiteKingCastleShortRight=(board,moves)=>{
+export const canWhiteKingCastleShortRight = (board, moves) => {
   // King and rook must be in starting positions
   if (board[7][4] !== PIECES.WHITE.KING || board[7][7] !== PIECES.WHITE.ROOK) {
     return false;
@@ -893,7 +920,7 @@ export const canWhiteKingCastleShortRight=(board,moves)=>{
   );
   if (kingMoved || rookMoved) return false;
   return true;
-}
+};
 export const canWhiteKingCastleLongRight = (board, moves) => {
   // King and rook must be in starting positions
   if (board[7][4] !== PIECES.WHITE.KING || board[7][0] !== PIECES.WHITE.ROOK) {
