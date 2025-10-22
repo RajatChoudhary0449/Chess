@@ -1,11 +1,12 @@
 import { createContext, useRef, useState } from "react";
-import { BLACK, INITIALBOARDSETUP, WHITE } from "../constants/constants.js";
+import { BLACK, INITIALBOARDSETUP, MESSAGE_TYPES, WHITE } from "../constants/constants.js";
 
 export const GameContext = createContext();
 import socket from "../socket.js";
 import { useEffect } from "react";
 import { addMove, checkGameOver, flipTurn, getLastMove } from "../utils/CommonFunctions.js";
 import { useNavigate } from "react-router-dom";
+import useNotification from "../hooks/useNotification.js";
 export const GameProvider = ({ children }) => {
   const [board, setBoard] = useState(INITIALBOARDSETUP);
   const [moves, setMoves] = useState([]);
@@ -18,8 +19,7 @@ export const GameProvider = ({ children }) => {
   const [playerColor, setPlayerColor] = useState(null);
   const [drawWindow, showDrawWindow] = useState(false);
   const [spectatorMode, setSpectatorMode] = useState(false);
-  const [showInfoModal, setShowInfoModal] = useState(false);
-  const [infoMessage, setInfoMessage] = useState("");
+  const { showNotification } = useNotification();
   const [availableRights, setAvailableRights] = useState([]);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [activeMoveIndex, setActiveMoveIndex] = useState(-1);
@@ -27,39 +27,37 @@ export const GameProvider = ({ children }) => {
   const flipped = playerColor === BLACK;
   const blackPlayerTimerRef = useRef();
   const whitePlayerTimerRef = useRef();
-  const delayTimerRef=useRef();
-  const [gameStarted,setGameStarted]=useState(false);
+  const delayTimerRef = useRef();
+  const [gameStarted, setGameStarted] = useState(false);
   const nav = useNavigate();
-  const [timeMode,setTimeMode]=useState({initial:0,increment:0,delay:0});
+  const [timeMode, setTimeMode] = useState({ initial: 0, increment: 0, delay: 0 });
   const updateGameState = (moves) => {
     setMoves(_ => moves);
     const updatedBoard = getLastMove(moves)?.board || INITIALBOARDSETUP;
     setBoard(_ => updatedBoard);
     setCurTurn(moves?.length % 2 === 0 ? WHITE : BLACK);
   }
-  useEffect(()=>{
-    if(gameOver) 
-    {
+  useEffect(() => {
+    if (gameOver) {
       whitePlayerTimerRef?.current?.stopTimer();
       blackPlayerTimerRef?.current?.stopTimer();
     }
-  },[gameOver])
+  }, [gameOver])
   useEffect(() => {
     const onAvailabilityResponse = ({ access, message, room, source }) => {
       const curRights = [];
       if (!access) {
         setTimeout(() => {
-          setShowInfoModal(true);
-          setInfoMessage(message);
+          showNotification({ message, type: MESSAGE_TYPES.WARNING });
         }, 0);
-        if(source!=="Room") nav("/");
+        if (source !== "Room") nav("/");
         return;
       }
       else {
-        if (room?.id?.length===6 && (!room[WHITE] || room[WHITE] === socket.id)) curRights.push(WHITE);
-        if(room?.id?.length!==6 && room.moves.length%2===0 && !room[WHITE]) curRights.push(WHITE);
-        if (room?.id?.length===6 && (!room[BLACK] || room[BLACK] === socket.id)) curRights.push(BLACK);
-        if(room?.id?.length!==6 && room.moves.length%2===1 && !room[BLACK]) curRights.push(BLACK);
+        if (room?.id?.length === 6 && (!room[WHITE] || room[WHITE] === socket.id)) curRights.push(WHITE);
+        if (room?.id?.length !== 6 && room.moves.length % 2 === 0 && !room[WHITE]) curRights.push(WHITE);
+        if (room?.id?.length === 6 && (!room[BLACK] || room[BLACK] === socket.id)) curRights.push(BLACK);
+        if (room?.id?.length !== 6 && room.moves.length % 2 === 1 && !room[BLACK]) curRights.push(BLACK);
         setAvailableRights(curRights);
       }
       if (source === "Screen") {
@@ -70,87 +68,74 @@ export const GameProvider = ({ children }) => {
         }
         if (curRights.length === 0) {
           socket.emit("join_room", { id: room.id, color: "spectator" });
-          setShowInfoModal(true);
-          setInfoMessage(`Congrats, you are joined as a spectator`);
+          showNotification({ message: `Congrats, you are joined as a spectator`, type: MESSAGE_TYPES.SUCCESS })
         }
         else setShowJoinModal(true);
       }
-      else
-      {
-        setShowModes(cur=>!cur);
+      else {
+        setShowModes(cur => !cur);
       }
     }
-    const onStartClock=({color,increment=timeMode?.increment,delay=timeMode?.delay})=>{
-      if(!gameStarted) setGameStarted(true);
-      if(!whitePlayerTimerRef?.current) return;
-      if(delayTimerRef?.current)
-      {
+    const onStartClock = ({ color, increment = timeMode?.increment, delay = timeMode?.delay }) => {
+      if (!gameStarted) setGameStarted(true);
+      if (!whitePlayerTimerRef?.current) return;
+      if (delayTimerRef?.current) {
         clearTimeout(delayTimerRef.current);
-        delayTimerRef.current=null;
+        delayTimerRef.current = null;
       }
-      if((color===WHITE && whitePlayerTimerRef?.current?.isRunning()) || (color===BLACK && blackPlayerTimerRef?.current?.isRunning()))
-      {
+      if ((color === WHITE && whitePlayerTimerRef?.current?.isRunning()) || (color === BLACK && blackPlayerTimerRef?.current?.isRunning())) {
         return;
       }
-      if(color===WHITE)
-      {
+      if (color === WHITE) {
         blackPlayerTimerRef.current.stopTimer();
         whitePlayerTimerRef.current.incrementTimer(increment);
-        delayTimerRef.current=setTimeout(
-          ()=>{
+        delayTimerRef.current = setTimeout(
+          () => {
             whitePlayerTimerRef.current.resumeTimer();
             delayTimerRef.current = null;
-          },delay*1000
+          }, delay * 1000
         )
       }
-      else
-      {
+      else {
         whitePlayerTimerRef.current.stopTimer();
         blackPlayerTimerRef.current.incrementTimer(increment);
-        delayTimerRef.current=setTimeout(
-          ()=>{
+        delayTimerRef.current = setTimeout(
+          () => {
             blackPlayerTimerRef.current.resumeTimer();
             delayTimerRef.current = null;
-          },delay*1000
+          }, delay * 1000
         )
       }
     }
-    const onShowPreparationWindow=(time)=>{
+    const onShowPreparationWindow = (time) => {
       // console.log(time);
-      setInfoMessage(`Your match will be starting soon, Prepare yourself`);
-      setShowInfoModal(true);
+      showNotification({ message: `Your match will be starting soon, Prepare yourself`, type: MESSAGE_TYPES.SUCCESS, duration: time });
     }
-    const onSetTime=({mode,initial,increment,delay})=>{
-      if(mode==="None")
-      {
-        setTimeMode((_)=>({mode,initial:-1,increment:0,delay:Infinity}))
+    const onSetTime = ({ mode, initial, increment, delay }) => {
+      if (mode === "None") {
+        setTimeMode((_) => ({ mode, initial: -1, increment: 0, delay: Infinity }))
       }
-      else{
-        setTimeMode((_)=>({mode,initial,increment,delay}));
-        whitePlayerTimerRef.current.setTime(initial*60);
-        blackPlayerTimerRef.current.setTime(initial*60);
+      else {
+        setTimeMode((_) => ({ mode, initial, increment, delay }));
+        whitePlayerTimerRef.current.setTime(initial * 60);
+        blackPlayerTimerRef.current.setTime(initial * 60);
       }
     }
-    const onSetClock=({whiteTime,blackTime})=>{
-      if(whiteTime)
-      {
+    const onSetClock = ({ whiteTime, blackTime }) => {
+      if (whiteTime) {
         whitePlayerTimerRef?.current?.setTime(whiteTime);
       }
-      if(blackTime)
-      {
+      if (blackTime) {
         blackPlayerTimerRef?.current?.setTime(blackTime);
       }
     }
-    const onRoomCreationStatus=({status,id,time})=>{
+    const onRoomCreationStatus = ({ status, id, time }) => {
       setTimeMode(time);
-      if(status)
-      {
+      if (status) {
         nav(`/room/${id}`);
       }
-      else
-      {
-        setInfoMessage("Room already exist");
-        setShowInfoModal(true);
+      else {
+        showNotification({ message: "Room already exist", type: MESSAGE_TYPES.WARNING });
       }
     }
     const onPlayerAssignment = (color) => {
@@ -228,11 +213,11 @@ export const GameProvider = ({ children }) => {
     socket.on("draw_accepted", onDrawAccepted);
     socket.on("draw_rejected", onDrawRejected);
     socket.on("availability_response", onAvailabilityResponse);
-    socket.on("room_creation_status",onRoomCreationStatus)
-    socket.on("start_clock",onStartClock);
-    socket.on("set_time",onSetTime);
-    socket.on("show_preparing_window",onShowPreparationWindow);
-    socket.on("set_clock",onSetClock);
+    socket.on("room_creation_status", onRoomCreationStatus)
+    socket.on("start_clock", onStartClock);
+    socket.on("set_time", onSetTime);
+    socket.on("show_preparing_window", onShowPreparationWindow);
+    socket.on("set_clock", onSetClock);
     return () => {
       socket.off("player_assignment", onPlayerAssignment);
       socket.off("opponent_move", onOpponentMove);
@@ -245,11 +230,11 @@ export const GameProvider = ({ children }) => {
       socket.off("draw_accepted", onDrawAccepted);
       socket.off("draw_rejected", onDrawRejected);
       socket.off("availability_response", onAvailabilityResponse);
-      socket.off("room_creation_status",onRoomCreationStatus);
-      socket.off("start_clock",onStartClock);
-      socket.off("set_time",onSetTime);
-      socket.off("show_preparing_window",onShowPreparationWindow);
-      socket.off("set_clock",onSetClock);
+      socket.off("room_creation_status", onRoomCreationStatus);
+      socket.off("start_clock", onStartClock);
+      socket.off("set_time", onSetTime);
+      socket.off("show_preparing_window", onShowPreparationWindow);
+      socket.off("set_clock", onSetClock);
     };
   }, []);
   const applyPromotion = (move) => {
@@ -283,10 +268,6 @@ export const GameProvider = ({ children }) => {
     setSpectatorMode,
     drawWindow,
     showDrawWindow,
-    showInfoModal,
-    setShowInfoModal,
-    infoMessage,
-    setInfoMessage,
     availableRights,
     setAvailableRights,
     showJoinModal,

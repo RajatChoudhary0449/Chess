@@ -610,6 +610,10 @@ export const isBlackKingChecked = (board) => {
 export const getLastMove = (moves) => {
   return moves?.length > 0 ? moves[moves.length-1] : null;
 };
+export const convertToPascal=(name)=>{
+  if (typeof name !== "string") return "";
+  return name.slice(0,1).toUpperCase()+name.slice(1).toLowerCase();
+}
 export const checkForInsufficientMaterial = (whitePieces, blackPieces) => {
   //King vs King
   if (whitePieces.length === 1 && blackPieces.length === 1) return true;

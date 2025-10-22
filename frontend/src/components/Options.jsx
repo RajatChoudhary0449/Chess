@@ -4,10 +4,10 @@ import { useNavigate } from "react-router-dom"
 import whiteKing from "../assets/whiteKing.png"
 import blackKing from "../assets/blackKing.png"
 import socket from "../socket"
-import { BLACK, WHITE } from '../constants/constants';
-import useGame from '../hooks/useGame';
-import InformationModal from "./InformationModal";
-export default function CreateRoom() {
+import { BLACK, MESSAGE_TYPES, WHITE } from '../constants/constants';
+import { convertToPascal } from '../utils/CommonFunctions';
+import useNotification from '../hooks/useNotification';
+export default function Options() {
     const timeModesCustom = [{ name: "initial", value: 5, title: "Initial(min)" }, { name: "increment", value: 2, title: "Increment(sec)" }, { name: "delay", value: 0, title: "Delay(sec)" }]
     const listOfAlphabets = `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`;
     //const colours=[WHITE,BLACK,"Random"];
@@ -15,17 +15,16 @@ export default function CreateRoom() {
     const generateRoomId = customAlphabet(listOfAlphabets, 7);
     const [input, setInput] = useState({ id: generateRoomId(), color: WHITE, timeMode: "Blitz(5+5)", time: { initial: 5, increment: 5, delay: 0 } });
     const nav = useNavigate();
-    const { infoMessage, setInfoMessage, showInfoModal, setShowInfoModal } = useGame();
-    const [messageType, setMessageType] = useState("warning");
+    const { showNotification } = useNotification();
     const validateRoomId = () => {
         const { id } = input;
         if (id.length !== 7) {
-            return { status: false, message: "Id should be of 7 alphanumeric characters", messageType: "warning" };
+            return { status: false, message: "Id should be of 7 alphanumeric characters", messageType: MESSAGE_TYPES.WARNING };
         }
         else if (![...id].every(item => listOfAlphabets.includes(item))) {
-            return { status: false, message: "Id should only contain alphanumeric characters", messageType: "warning" };
+            return { status: false, message: "Id should only contain alphanumeric characters", messageType: MESSAGE_TYPES.WARNING };
         }
-        return { status: true, message: "Copy the room ID or share this URL to invite your opponent.", messageType: "success" };
+        return { status: true, message: "Copy the room ID or share this URL to invite your opponent.", messageType: MESSAGE_TYPES.INFO };
     }
     const generateRandomColor = () => {
         let cur = Math.floor(Math.random() * 2);
@@ -36,16 +35,13 @@ export default function CreateRoom() {
     }
     const handleRoomCreation = () => {
         const { status, message, messageType: mt } = validateRoomId();
-        setMessageType(mt);
-        setShowInfoModal(true);
-        setInfoMessage(message);
+        showNotification({ message, type: mt })
         if (!status) return;
-        socket.emit("create_room", { id: input.id, color: input.color === "Random" ? generateRandomColor() : input.color, time:{mode:input.timeMode,...input.time} });
+        socket.emit("create_room", { id: input.id, color: input.color === "Random" ? generateRandomColor() : input.color, time: { mode: input.timeMode, ...input.time } });
     }
     const handleTimeChange = (e) => {
         if (Number(e.target.value) >= 60) {
-            setShowInfoModal(true);
-            setInfoMessage(`${e.target.name} cannot be greater than or equal to 60`);
+            showNotification({ message: `${convertToPascal(e.target.name)} cannot be greater than or equal to 60`, type: MESSAGE_TYPES.WARNING });
             setInput(ip => ({ ...ip, time: { ...ip.time, [e.target.name]: 59 } }));
         }
         else
@@ -54,8 +50,7 @@ export default function CreateRoom() {
     const handleIncrement = ({ name, value }) => {
         value++;
         if (value >= 60) {
-            setShowInfoModal(true);
-            setInfoMessage(`${name} cannot be greater than or equal to 60`);
+            showNotification({ message: `${convertToPascal(name)} cannot be greater than or equal to 60`, type: MESSAGE_TYPES.WARNING });
             value = 59;
         }
         setInput(ip => ({ ...ip, time: { ...ip.time, [name]: value } }));
@@ -63,8 +58,7 @@ export default function CreateRoom() {
     const handleDecrement = ({ name, value }) => {
         value--;
         if (value < 0) {
-            setShowInfoModal(true);
-            setInfoMessage(`${name} cannot be less than 0`);
+            showNotification({ message: `${convertToPascal(name)} cannot be less than 0`, type: MESSAGE_TYPES.WARNING });
             value = 0;
         }
         setInput(ip => ({ ...ip, time: { ...ip.time, [name]: value } }));
@@ -87,7 +81,6 @@ export default function CreateRoom() {
     }
     return (
         <div className='h-[100dvh] w-full flex justify-center items-center ' style={{ backgroundImage: `url("/icon.jpeg")` }}>
-            {showInfoModal && <InformationModal setShow={setShowInfoModal} message={infoMessage} position='top-right' messageType={messageType} />}
             <div className='h-auto bg-[#444] text-white rounded-2xl px-2 md:px-4 py-4 flex flex-col gap-y-4 max-w-[90dvw]'>
                 <button className="flex justify-start text-white bg-[#444] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
                 <div className='flex items-center gap-x-4'>

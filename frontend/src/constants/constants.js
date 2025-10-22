@@ -16,12 +16,48 @@ export const PIECES = {
     PAWN: "P",
   },
 };
-export const WHITE="white";
-export const BLACK="black";
+export const WHITE = "white";
+export const BLACK = "black";
 export const INITIALBOARDSETUP = [
-  [PIECES.BLACK.ROOK, PIECES.BLACK.KNIGHT, PIECES.BLACK.BISHOP, PIECES.BLACK.QUEEN, PIECES.BLACK.KING, PIECES.BLACK.BISHOP, PIECES.BLACK.KNIGHT, PIECES.BLACK.ROOK],
+  [
+    PIECES.BLACK.ROOK,
+    PIECES.BLACK.KNIGHT,
+    PIECES.BLACK.BISHOP,
+    PIECES.BLACK.QUEEN,
+    PIECES.BLACK.KING,
+    PIECES.BLACK.BISHOP,
+    PIECES.BLACK.KNIGHT,
+    PIECES.BLACK.ROOK,
+  ],
   Array.from({ length: 8 }, () => PIECES.BLACK.PAWN),
   ...Array.from({ length: 4 }, () => Array.from({ length: 8 }, () => "")),
   Array.from({ length: 8 }, () => PIECES.WHITE.PAWN),
-  [PIECES.WHITE.ROOK, PIECES.WHITE.KNIGHT, PIECES.WHITE.BISHOP, PIECES.WHITE.QUEEN, PIECES.WHITE.KING, PIECES.WHITE.BISHOP, PIECES.WHITE.KNIGHT, PIECES.WHITE.ROOK],
+  [
+    PIECES.WHITE.ROOK,
+    PIECES.WHITE.KNIGHT,
+    PIECES.WHITE.BISHOP,
+    PIECES.WHITE.QUEEN,
+    PIECES.WHITE.KING,
+    PIECES.WHITE.BISHOP,
+    PIECES.WHITE.KNIGHT,
+    PIECES.WHITE.ROOK,
+  ],
 ];
+export const POSITIONS = {
+  TOP_CENTER: "top-center",
+  TOP_RIGHT: "top-right",
+  TOP_LEFT: "top-left",
+
+  MIDDLE_LEFT: "middle-left",
+  MIDDLE_CENTER: "middle-center",
+  MIDDLE_RIGHT: "middle-right",
+
+  BOTTOM_CENTER: "bottom-center",
+  BOTTOM_RIGHT: "bottom-right",
+  BOTTOM_LEFT: "bottom-left",
+};
+export const MESSAGE_TYPES = {
+  INFO: "info",
+  WARNING: "warning",
+  SUCCESS: "success",
+};

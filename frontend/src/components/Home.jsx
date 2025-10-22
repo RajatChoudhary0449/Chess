@@ -1,8 +1,6 @@
 import { useNavigate } from "react-router-dom"
 import one from "../assets/1pchess.jpeg"
 import two from "../assets/2pchess.webp"
-import InformationModal from "./InformationModal";
-import useGame from "../hooks/useGame";
 export default function Home() {
     const nav = useNavigate();
     const handleOnePlayerClick = () => {
@@ -11,10 +9,8 @@ export default function Home() {
     const handleTwoPlayerClick = () => {
         nav("room");
     }
-    const { showInfoModal, setShowInfoModal, infoMessage } = useGame();
     return (
         <div className='h-[100dvh] w-full flex justify-center items-center' style={{ backgroundImage: `url("/icon.jpeg")` }}>
-            {showInfoModal && <InformationModal message={infoMessage} setShow={setShowInfoModal} />}
             <div className='h-auto bg-[#444] text-white rounded-2xl px-8 py-8 '>
                 <h2 className='text-2xl'>Welcome!</h2>
                 <h3 className='my-2 text-xl'>Choose the mode of play</h3>

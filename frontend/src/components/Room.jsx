@@ -1,12 +1,13 @@
 import { useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react";
-import { BLACK, WHITE } from "../constants/constants";
+import { BLACK, MESSAGE_TYPES, POSITIONS, WHITE } from "../constants/constants";
 import socket from "../socket";
 import useGame from "../hooks/useGame";
-import InformationModal from "./InformationModal";
+import useNotification from "../hooks/useNotification";
 export default function Room() {
     const [inputId, setInputId] = useState("");
-    const { availableRights, showInfoModal, setShowInfoModal, infoMessage, setInfoMessage, showModes,setShowModes } = useGame();
+    const { availableRights, showModes, setShowModes } = useGame();
+    const { showNotification } = useNotification();
     const nav = useNavigate();
     const handleBackPress = () => {
         nav("/");
@@ -16,8 +17,7 @@ export default function Room() {
     }
     const handleJoinRoom = () => {
         if (inputId.length < 6) {
-            setShowInfoModal(true);
-            setInfoMessage("Invalid Room ID");
+            showNotification({ message: `Invalid Room ID`, type: MESSAGE_TYPES.WARNING,position:POSITIONS.TOP_CENTER })
             setShowModes(false);
         }
         else {
@@ -25,16 +25,15 @@ export default function Room() {
             socket.emit("check_for_room", { id: inputId, source: "Room" });
         }
     }
-    useEffect(()=>{
-        if(showModes) setShowModes(false);
-    },[inputId]);
+    useEffect(() => {
+        if (showModes) setShowModes(false);
+    }, [inputId]);
     const handleJoinWithMode = (color) => {
         socket.emit("join_room", { id: inputId, color });
         nav(`/room/${inputId}`);
     }
     return (
         <div className='h-[100dvh] w-full flex justify-center items-center ' style={{ backgroundImage: `url("/icon.jpeg")` }}>
-            {showInfoModal && <InformationModal message={infoMessage} messageType={"warning"} setShow={setShowInfoModal} />}
             <div className='h-auto bg-[#444] text-white rounded-2xl px-4 py-6 max-w-[90%]'>
                 <button className="flex justify-start text-white bg-[#444] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
                 <h3 className='my-2 text-xl'>Choose one of the option:</h3>

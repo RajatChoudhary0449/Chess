@@ -9,13 +9,12 @@ import InformationBlock from "./InformationBlock.jsx";
 import MoveList from "./MoveList.jsx";
 import DrawWindowModal from "./DrawWindowModal.jsx";
 import EvaluationBar from "./EvaluationBar.jsx";
-import InformationModal from "./InformationModal.jsx";
 import { useParams } from "react-router-dom";
 import JoinChoiceModal from "./JoinChoiceModal.jsx";
 import { BLACK, WHITE } from "../constants/constants.js";
 import TimerWindow from "./TimerWindow.jsx";
 export default function Screen() {
-    const { curTurn, setCurTurn, promotionPiece, setPromotionPiece, gameOver, setGameOver, board, setBoard, setMoves, message, setMessage, playerColor, spectatorMode, setSpectatorMode, drawWindow, showDrawWindow, showInfoModal, setShowInfoModal, infoMessage, availableRights, showJoinModal, setShowJoinModal, flipped, blackPlayerTimerRef, whitePlayerTimerRef, timeMode } = useGame();
+    const { curTurn, setCurTurn, promotionPiece, setPromotionPiece, gameOver, setGameOver, board, setBoard, setMoves, message, setMessage, playerColor, spectatorMode, setSpectatorMode, drawWindow, showDrawWindow, availableRights, showJoinModal, setShowJoinModal, flipped, blackPlayerTimerRef, whitePlayerTimerRef, timeMode } = useGame();
     const [val, setVal] = useState();
     const { id } = useParams();
     const onePlayer = id?.length !== 6;
@@ -44,7 +43,7 @@ export default function Screen() {
         setGameOver(false);
     }
     const handleTimeOut = (color) => {
-        const message = `${color.slice(0,1).toUpperCase()+color.slice(1)} wins by timeout!!`;
+        const message = `${color.slice(0, 1).toUpperCase() + color.slice(1)} wins by timeout!!`;
         if (!onePlayer)
             socket.emit("resign", { state: true, message: message });
         setGameOver(true);
@@ -63,8 +62,6 @@ export default function Screen() {
                     onJoinBlack={() => { handleJoinFromChoiceModal(BLACK) }}
                     onSpectate={() => { handleJoinFromChoiceModal("spectator") }}
                 />}
-            {showInfoModal &&
-                <InformationModal message={infoMessage} setShow={setShowInfoModal} position="top-right" />}
             {promotionPiece &&
                 <PromotionModal curTurn={curTurn} handlePromotion={handlePromotion} />}
             {!playerColor && !spectatorMode &&
