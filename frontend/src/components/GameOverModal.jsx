@@ -20,7 +20,7 @@ function GameOverModal({ gameOver, message, viewBoard, setGameOver, setMessage, 
               </button>
               <button
                 className="bg-blue-500 hover:bg-blue-600 text-white hover:scale-105 px-4 py-2 rounded md:font-normal font-bold"
-                onClick={() => { setGameOver(false); setMessage(""); nav(`/${roomId.length === 6 ? "room" : "lobby"}/create`); }}
+                onClick={() => { setGameOver(false); setMessage(""); nav(`/room/create`); }}
               >
                 Play Again
               </button>

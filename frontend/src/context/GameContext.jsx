@@ -24,6 +24,7 @@ export const GameProvider = ({ children }) => {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [activeMoveIndex, setActiveMoveIndex] = useState(-1);
   const [showModes, setShowModes] = useState(false);
+  const [players, setPlayers] = useState(1);
   const flipped = playerColor === BLACK;
   const blackPlayerTimerRef = useRef();
   const whitePlayerTimerRef = useRef();
@@ -129,8 +130,9 @@ export const GameProvider = ({ children }) => {
         blackPlayerTimerRef?.current?.setTime(blackTime);
       }
     }
-    const onRoomCreationStatus = ({ status, id, time }) => {
+    const onRoomCreationStatus = ({ status, id, time, players }) => {
       setTimeMode(time);
+      setPlayers(_=>players);
       if (status) {
         nav(`/room/${id}`);
       }
@@ -283,6 +285,8 @@ export const GameProvider = ({ children }) => {
     setGameStarted,
     timeMode,
     setTimeMode,
+    players,
+    setPlayers,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

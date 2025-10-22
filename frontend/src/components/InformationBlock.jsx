@@ -18,22 +18,22 @@ export default function InformationBlock() {
     }
     const handleBackClick = () => {
         socket.emit("remove_from_room");
-        nav(`/${id.length === 6 ? "room" : "lobby"}/create`);
+        nav(`/room/create`);
     }
     return (
-        <div className="flex md:flex-row flex-col gap-y-4 justify-between items-center">
+        <div className="flex md:flex-row flex-col gap-y-2 justify-between items-center">
             <div className="flex gap-x-4 items-center md:justify-start justify-between w-full md:w-auto">
                 <div className={`text-white flex flex-col md:text-2xl text-xl cursor-pointer`} onClick={handleBackClick}>
                     {"< Back"}
                 </div>
-                <div className="text-white flex flex-col md:hidden h-[70px] md:text-2xl text-xl justify-center">
+                <div className="text-white flex flex-col md:hidden md:text-2xl text-xl justify-center">
                     <div className="flex gap-x-2 items-center">
                         <p>
                             Room ID: <strong>{id}</strong>
                         </p>
                         <div className="w-0 h-[15px] border border-white "></div>
                         <button className="rounded-full aspect-square cursor-pointer hover:bg-gray-400 p-2 disabled:bg-transparent disabled:opacity-50 disabled:cursor-default" onClick={handleCopyId} disabled={copied}><i className="fa fa-copy"></i></button></div>
-                    {copied && <span className="text-green-500 font-bold flex justify-end">Link Copied!!</span>}
+                    {copied && <span className="text-green-500 font-bold flex justify-end">Id Copied!!</span>}
                 </div>
             </div>
             {gameStarted ?
@@ -69,7 +69,7 @@ export default function InformationBlock() {
                     </p>
                     <div className="w-0 h-[15px] border border-white "></div>
                     <button className="rounded-full aspect-square cursor-pointer hover:bg-gray-400 p-2 disabled:bg-transparent disabled:opacity-50 disabled:cursor-default" onClick={handleCopyId} disabled={copied}><i className="fa fa-copy"></i></button>
-                    {copied && <span className="text-green-500 font-bold">Link Copied!!</span>}
+                    {copied && <span className="text-green-500 font-bold">Id Copied!!</span>}
                 </div>
             </div>
         </div>

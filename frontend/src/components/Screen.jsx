@@ -14,16 +14,19 @@ import JoinChoiceModal from "./JoinChoiceModal.jsx";
 import { BLACK, WHITE } from "../constants/constants.js";
 import TimerWindow from "./TimerWindow.jsx";
 export default function Screen() {
-    const { curTurn, setCurTurn, promotionPiece, setPromotionPiece, gameOver, setGameOver, board, setBoard, setMoves, message, setMessage, playerColor, spectatorMode, setSpectatorMode, drawWindow, showDrawWindow, availableRights, showJoinModal, setShowJoinModal, flipped, blackPlayerTimerRef, whitePlayerTimerRef, timeMode } = useGame();
+    const { curTurn, setCurTurn, promotionPiece, setPromotionPiece, gameOver, setGameOver, board, setBoard, setMoves, message, setMessage, playerColor, spectatorMode, setSpectatorMode, drawWindow, showDrawWindow, availableRights, showJoinModal, setShowJoinModal, flipped, blackPlayerTimerRef, whitePlayerTimerRef, timeMode, players } = useGame();
     const [val, setVal] = useState();
     const { id } = useParams();
-    const onePlayer = id?.length !== 6;
+    let onePlayer = players===1;
     // const blackPlayerTimerRef = useRef();
     // const whitePlayerTimerRef = useRef();
     useEffect(() => {
         if (spectatorMode || playerColor) return;
         socket.emit("check_for_room", { id, source: "Screen" });
     }, []);
+    useEffect(()=>{
+        onePlayer=(players===1);
+    },[players]);
     const handlePromotion = (piece) => {
         const { move, turn } = promotionPiece;
         move.promotedTo = piece;

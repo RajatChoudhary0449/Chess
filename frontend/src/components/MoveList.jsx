@@ -112,7 +112,7 @@ export default function MoveList({ val }) {
                         <button className={`text-[16px] p-2 w-fit flex justify-center border border-white font-bold  transition duration-100 ${spectatorMode ? "pointer-none" : "hover:bg-white hover:scale-110 cursor-pointer"} disabled:opacity-50`} onClick={handleResign} disabled={spectatorMode}>Resign</button>
                     </div>
                 }
-                {spectatorMode && <div>Best Move for <strong>{flipTurn(moves?.[activeMoveIndex]?.turn)}</strong>: <br></br><strong className='font-bold'>{`${val?.from}->${val?.to}`}</strong> </div>}
+                {spectatorMode && <div>Best Move for <strong>{flipTurn(moves?.[activeMoveIndex]?.turn)}</strong>: <br className='md:block hidden'></br><strong className='font-bold md:ml-0 ml-4'>{`${val?.from}->${val?.to}`}</strong> </div>}
                 <div className="flex justify-between items-center mb-2">
                     <div className='flex items-center w-full justify-between'>
                         <div className="font-semibold">Move List</div>

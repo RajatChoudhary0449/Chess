@@ -7,13 +7,16 @@ import socket from "../socket"
 import { BLACK, MESSAGE_TYPES, WHITE } from '../constants/constants';
 import { convertToPascal } from '../utils/CommonFunctions';
 import useNotification from '../hooks/useNotification';
+import one from "../assets/1pchess.jpeg"
+import two from "../assets/2pchess.webp"
 export default function CreateRoom() {
     const timeModesCustom = [{ name: "initial", value: 5, title: "Initial(min)" }, { name: "increment", value: 2, title: "Increment(sec)" }, { name: "delay", value: 0, title: "Delay(sec)" }]
     const listOfAlphabets = `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`;
     //const colours=[WHITE,BLACK,"Random"];
     const timeModesData = [{ name: "None", value: "None" }, { name: "Bullet", value: "Bullet(2+1)" }, { name: "Blitz", value: "Blitz(5+5)" }, { name: "Rapid", value: "Rapid(15+10)" }, { name: "Custom", value: "Custom" }];
+    const playersData = [{ name: "One Player", value: 1, imageSrc: one }, { name: "Two Player", value: 2, imageSrc: two }];
     const generateRoomId = customAlphabet(listOfAlphabets, 6);
-    const [input, setInput] = useState({ id: generateRoomId(), color: WHITE, timeMode: "Blitz(5+5)", time: { initial: 5, increment: 5, delay: 0 } });
+    const [input, setInput] = useState({ id: generateRoomId(), mode: 1, color: WHITE, timeMode: "Blitz(5+5)", time: { initial: 5, increment: 5, delay: 0 } });
     const nav = useNavigate();
     const { showNotification } = useNotification();
     const validateRoomId = () => {
@@ -37,7 +40,7 @@ export default function CreateRoom() {
         const { status, message, messageType: mt } = validateRoomId();
         showNotification({ message, type: mt })
         if (!status) return;
-        socket.emit("create_room", { id: input.id, color: input.color === "Random" ? generateRandomColor() : input.color, time: { mode: input.timeMode, ...input.time } });
+        socket.emit("create_room", { id: input.id, players: input.mode ,color: input.color === "Random" ? generateRandomColor() : input.color, time: { mode: input.timeMode, ...input.time } });
     }
     const handleTimeChange = (e) => {
         if (Number(e.target.value) >= 60) {
@@ -80,9 +83,22 @@ export default function CreateRoom() {
         }
     }
     return (
-        <div className='h-[100dvh] w-full flex justify-center items-center ' style={{ backgroundImage: `url("/icon.jpeg")` }}>
+        <div className='h-[100dvh] w-[100dvw] flex justify-center items-center ' style={{ backgroundImage: `url("/icon.jpeg")` }}>
             <div className='h-auto bg-[#444] text-white rounded-2xl px-2 md:px-4 py-4 flex flex-col gap-y-4 max-w-[90dvw]'>
                 <button className="flex justify-start text-white bg-[#444] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
+                <div className='flex gap-x-4'>
+                    <p className='md:text-2xl font-semibold text-xl text-nowrap flex items-center'>Mode</p>
+                    <div className='flex w-full md:w-auto md:gap-x-4 justify-between md:justify-start'>
+                        {playersData.map((item) => {
+                            const selected=item.value===input.mode;
+                            return <div key={item.value} className={`md:p-4 p-2 flex flex-col justify-center items-center text-xl border-4 text-center md:text-nowrap gap-2 ${selected ? "border-purple-700" : "border-[#444]"} cursor-pointer hover:scale-105`} onClick={() => { setInput((ip) => ({ ...ip, mode: item.value })) }}>
+                                <div><img src={item.imageSrc} className='w-[50px] h-[50px]'></img></div>
+                                <div>{item.name}</div>
+                            </div>
+                        }
+                        )}
+                    </div>
+                </div>
                 <div className='flex items-center gap-x-4'>
                     <p className='md:text-2xl font-semibold text-xl text-nowrap'>Room ID</p>
                     <input value={input.id} onChange={(e) => setInput(input => ({ ...input, id: e.target.value }))} className="outline-none px-4 py-4 text-xl" spellCheck={false} maxLength={6}></input>

@@ -17,7 +17,7 @@ export default function Room() {
     }
     const handleJoinRoom = () => {
         if (inputId.length < 6) {
-            showNotification({ message: `Invalid Room ID`, type: MESSAGE_TYPES.WARNING,position:POSITIONS.TOP_CENTER })
+            showNotification({ message: `Invalid Room ID length`, type: MESSAGE_TYPES.WARNING,position:POSITIONS.TOP_CENTER })
             setShowModes(false);
         }
         else {
@@ -33,7 +33,7 @@ export default function Room() {
         nav(`/room/${inputId}`);
     }
     return (
-        <div className='h-[100dvh] w-full flex justify-center items-center ' style={{ backgroundImage: `url("/icon.jpeg")` }}>
+        <div className='h-[100dvh] w-[100dvw] flex justify-center items-center ' style={{ backgroundImage: `url("/icon.jpeg")` }}>
             <div className='h-auto bg-[#444] text-white rounded-2xl px-4 py-6 max-w-[90%]'>
                 <button className="flex justify-start text-white bg-[#444] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
                 <h3 className='my-2 text-xl'>Choose one of the option:</h3>

@@ -26,6 +26,7 @@ const io = new Server(server, {
   black: socket.id || null,
   gameStarted: boolean,
   moves: [objects],
+  players: 1|2
   time: Object with mode:None | Blitz | Rapid | Bullet | Custom, hr, min, sec,
   spectators: [socket.id],
 */
@@ -109,7 +110,7 @@ const removeFromRoom = (socket) => {
 
 // Handle connections
 io.on("connection", (socket) => {
-  socket.on("create_room", ({ id, color, time }) => {
+  socket.on("create_room", ({ id, color, time, players }) => {
     if (rooms.find((room) => room.id === id)) {
       console.log("Room id already available");
       socket.emit("room_creation_status", { status: false, id, time });
@@ -122,13 +123,14 @@ io.on("connection", (socket) => {
       gameStarted: false,
       moves: [],
       time,
+      players,
       spectators: [],
       lastUpdatedTime: new Date(),
     };
     socket.emit("player_assignment", color);
     socket.emit("update_game_state", []);
-    socket.emit("room_creation_status", { status: true, id, time });
-    if (id.length === 7) {
+    socket.emit("room_creation_status", { status: true, id, time, players});
+    if(players===1){
       curRoom.gameStarted = true;
       socket.emit("start_clock", {
         color: "white",
