@@ -37,7 +37,7 @@ export default function InformationBlock() {
                 </div>
             </div>
             {gameStarted ?
-                <div className={`md:flex-col flex-row rounded-2xl w-fit bg-[#e0c097]/90 flex justify-center gap-x-2 py-2 px-4 ${playerColor === WHITE ? "text-white" : "text-black"}`}>
+                <div className={`rounded-2xl w-fit bg-[#e0c097]/90 flex justify-center gap-x-2 py-2 px-4 ${playerColor === WHITE ? "text-white" : "text-black"}`}>
                     <div className={`flex justify-center items-center gap-x-2`}>
                         <div className={`${spectatorMode ? "hidden" : ""}`}>
                             You are 

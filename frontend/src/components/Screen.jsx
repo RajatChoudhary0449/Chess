@@ -13,20 +13,21 @@ import { useParams } from "react-router-dom";
 import JoinChoiceModal from "./JoinChoiceModal.jsx";
 import { BLACK, WHITE } from "../constants/constants.js";
 import TimerWindow from "./TimerWindow.jsx";
+import FullScreenContainer from "./common/FullScreenContainer.jsx";
 export default function Screen() {
     const { curTurn, setCurTurn, promotionPiece, setPromotionPiece, gameOver, setGameOver, board, setBoard, setMoves, message, setMessage, playerColor, spectatorMode, setSpectatorMode, drawWindow, showDrawWindow, availableRights, showJoinModal, setShowJoinModal, flipped, blackPlayerTimerRef, whitePlayerTimerRef, timeMode, players } = useGame();
     const [val, setVal] = useState();
     const { id } = useParams();
-    let onePlayer = players===1;
+    let onePlayer = players === 1;
     // const blackPlayerTimerRef = useRef();
     // const whitePlayerTimerRef = useRef();
     useEffect(() => {
         if (spectatorMode || playerColor) return;
         socket.emit("check_for_room", { id, source: "Screen" });
     }, []);
-    useEffect(()=>{
-        onePlayer=(players===1);
-    },[players]);
+    useEffect(() => {
+        onePlayer = (players === 1);
+    }, [players]);
     const handlePromotion = (piece) => {
         const { move, turn } = promotionPiece;
         move.promotedTo = piece;
@@ -57,7 +58,7 @@ export default function Screen() {
         setShowJoinModal(false);
     }
     return (
-        <div className="flex justify-center items-center flex-col h-[100dvh]" style={{ backgroundImage: `url("/icon.jpeg")` }}>
+        <FullScreenContainer>
             {showJoinModal &&
                 <JoinChoiceModal onClose={() => setShowJoinModal(false)}
                     availableRights={availableRights}
@@ -98,6 +99,6 @@ export default function Screen() {
                     </div>
                 </>
             }
-        </div >
+        </FullScreenContainer >
     );
 }

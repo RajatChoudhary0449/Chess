@@ -4,6 +4,7 @@ import { BLACK, MESSAGE_TYPES, POSITIONS, WHITE } from "../constants/constants";
 import socket from "../socket";
 import useGame from "../hooks/useGame";
 import useNotification from "../hooks/useNotification";
+import FullScreenContainer from "./common/FullScreenContainer";
 export default function Room() {
     const [inputId, setInputId] = useState("");
     const { availableRights, showModes, setShowModes } = useGame();
@@ -17,7 +18,7 @@ export default function Room() {
     }
     const handleJoinRoom = () => {
         if (inputId.length < 6) {
-            showNotification({ message: `Invalid Room ID length`, type: MESSAGE_TYPES.WARNING,position:POSITIONS.TOP_CENTER })
+            showNotification({ message: `Invalid Room ID length`, type: MESSAGE_TYPES.WARNING, position: POSITIONS.TOP_CENTER })
             setShowModes(false);
         }
         else {
@@ -33,7 +34,7 @@ export default function Room() {
         nav(`/room/${inputId}`);
     }
     return (
-        <div className='h-[100dvh] w-[100dvw] flex justify-center items-center ' style={{ backgroundImage: `url("/icon.jpeg")` }}>
+        <FullScreenContainer>
             <div className='h-auto bg-[#444] text-white rounded-2xl px-4 py-6 max-w-[90%]'>
                 <button className="flex justify-start text-white bg-[#444] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
                 <h3 className='my-2 text-xl'>Choose one of the option:</h3>
@@ -70,6 +71,6 @@ export default function Room() {
                     }
                 </div>
             </div>
-        </div>
+        </FullScreenContainer>
     )
 }

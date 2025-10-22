@@ -1,18 +1,16 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import FullScreenContainer from "./common/FullScreenContainer";
 
 export default function Home() {
   const nav = useNavigate();
 
   const handleEnter = () => {
-    nav("/room"); 
+    nav("/room");
   };
 
   return (
-    <div
-      className="h-[100dvh] w-full flex justify-center items-center bg-cover bg-center"
-      style={{ backgroundImage: `url("/icon.jpeg")` }}
-    >
+    <FullScreenContainer>
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -49,6 +47,6 @@ export default function Home() {
           “The game is a struggle against your own mistakes.” — Bobby Fischer
         </p>
       </motion.div>
-    </div>
+    </FullScreenContainer>
   );
 }

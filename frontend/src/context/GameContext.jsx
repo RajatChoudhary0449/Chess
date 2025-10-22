@@ -51,14 +51,15 @@ export const GameProvider = ({ children }) => {
         setTimeout(() => {
           showNotification({ message, type: MESSAGE_TYPES.WARNING });
         }, 0);
-        if (source !== "Room") nav("/");
+        if (source !== "Room") nav("/room/create");
         return;
       }
       else {
-        if (room?.id?.length === 6 && (!room[WHITE] || room[WHITE] === socket.id)) curRights.push(WHITE);
-        if (room?.id?.length !== 6 && room.moves.length % 2 === 0 && !room[WHITE]) curRights.push(WHITE);
-        if (room?.id?.length === 6 && (!room[BLACK] || room[BLACK] === socket.id)) curRights.push(BLACK);
-        if (room?.id?.length !== 6 && room.moves.length % 2 === 1 && !room[BLACK]) curRights.push(BLACK);
+        const onePlayer=(room.players===1);
+        if (!onePlayer && (!room[WHITE] || room[WHITE] === socket.id)) curRights.push(WHITE);
+        if (onePlayer && room.moves.length % 2 === 0 && !room[WHITE]) curRights.push(WHITE);
+        if (!onePlayer && (!room[BLACK] || room[BLACK] === socket.id)) curRights.push(BLACK);
+        if (onePlayer && room.moves.length % 2 === 1 && !room[BLACK]) curRights.push(BLACK);
         setAvailableRights(curRights);
       }
       if (source === "Screen") {
@@ -67,7 +68,7 @@ export const GameProvider = ({ children }) => {
         if (room[WHITE] === socket.id || room[BLACK] === socket.id) {
           return;
         }
-        if (curRights.length === 0) {
+        if (curRights.length === 0 || players === 1) {
           socket.emit("join_room", { id: room.id, color: "spectator" });
           showNotification({ message: `Congrats, you are joined as a spectator`, type: MESSAGE_TYPES.SUCCESS })
         }
@@ -79,7 +80,7 @@ export const GameProvider = ({ children }) => {
     }
     const onStartClock = ({ color, increment = timeMode?.increment, delay = timeMode?.delay }) => {
       if (!gameStarted) setGameStarted(true);
-      if (!whitePlayerTimerRef?.current) return;
+      if (!whitePlayerTimerRef?.current || !blackPlayerTimerRef?.current) return;
       if (delayTimerRef?.current) {
         clearTimeout(delayTimerRef.current);
         delayTimerRef.current = null;
@@ -132,7 +133,7 @@ export const GameProvider = ({ children }) => {
     }
     const onRoomCreationStatus = ({ status, id, time, players }) => {
       setTimeMode(time);
-      setPlayers(_=>players);
+      setPlayers(_ => players);
       if (status) {
         nav(`/room/${id}`);
       }

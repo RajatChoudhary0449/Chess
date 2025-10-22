@@ -9,6 +9,7 @@ import { convertToPascal } from '../utils/CommonFunctions';
 import useNotification from '../hooks/useNotification';
 import one from "../assets/1pchess.jpeg"
 import two from "../assets/2pchess.webp"
+import FullScreenContainer from './common/FullScreenContainer';
 export default function CreateRoom() {
     const timeModesCustom = [{ name: "initial", value: 5, title: "Initial(min)" }, { name: "increment", value: 2, title: "Increment(sec)" }, { name: "delay", value: 0, title: "Delay(sec)" }]
     const listOfAlphabets = `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`;
@@ -40,7 +41,7 @@ export default function CreateRoom() {
         const { status, message, messageType: mt } = validateRoomId();
         showNotification({ message, type: mt })
         if (!status) return;
-        socket.emit("create_room", { id: input.id, players: input.mode ,color: input.color === "Random" ? generateRandomColor() : input.color, time: { mode: input.timeMode, ...input.time } });
+        socket.emit("create_room", { id: input.id, players: input.mode, color: input.color === "Random" ? generateRandomColor() : input.color, time: { mode: input.timeMode, ...input.time } });
     }
     const handleTimeChange = (e) => {
         if (Number(e.target.value) >= 60) {
@@ -83,14 +84,14 @@ export default function CreateRoom() {
         }
     }
     return (
-        <div className='h-[100dvh] w-[100dvw] flex justify-center items-center ' style={{ backgroundImage: `url("/icon.jpeg")` }}>
+        <FullScreenContainer>
             <div className='h-auto bg-[#444] text-white rounded-2xl px-2 md:px-4 py-4 flex flex-col gap-y-4 max-w-[90dvw]'>
                 <button className="flex justify-start text-white bg-[#444] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
                 <div className='flex gap-x-4'>
                     <p className='md:text-2xl font-semibold text-xl text-nowrap flex items-center'>Mode</p>
                     <div className='flex w-full md:w-auto md:gap-x-4 justify-between md:justify-start'>
                         {playersData.map((item) => {
-                            const selected=item.value===input.mode;
+                            const selected = item.value === input.mode;
                             return <div key={item.value} className={`md:p-4 p-2 flex flex-col justify-center items-center text-xl border-4 text-center md:text-nowrap gap-2 ${selected ? "border-purple-700" : "border-[#444]"} cursor-pointer hover:scale-105`} onClick={() => { setInput((ip) => ({ ...ip, mode: item.value })) }}>
                                 <div><img src={item.imageSrc} className='w-[50px] h-[50px]'></img></div>
                                 <div>{item.name}</div>
@@ -160,6 +161,7 @@ export default function CreateRoom() {
                 }
                 <button className='text-2xl bg-purple-700 py-2 rounded-xl font-semibold mt-4 cursor-pointer' onClick={handleRoomCreation}>Start the game</button>
             </div>
-        </div>
+        </FullScreenContainer>
+
     )
 }

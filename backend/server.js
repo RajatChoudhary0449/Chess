@@ -157,12 +157,14 @@ io.on("connection", (socket) => {
     if (color === "spectator") {
       socket.emit("player_assignment", color);
       if (!room.spectators.includes(socket.id)) room.spectators.push(socket.id);
-      return;
     }
-    if (room[color]) return;
-    if (!["white", "black"].includes(color)) return;
-    room[color] = socket.id;
-    socket.emit("player_assignment", color);
+    else
+    {
+      if (room[color]) return;
+      if (!["white", "black"].includes(color)) return;
+      room[color] = socket.id;
+      socket.emit("player_assignment", color);
+    }
     socket.emit("set_time", room.time);
     const curTurn = room.moves?.length % 2 === 0 ? "white" : "black";
     let whiteTime = room.time.initial * 60,
