@@ -1,4 +1,4 @@
-import { BLACK, PIECES, WHITE } from "../constants/constants.js";
+import { BLACK, PIECES, TIMEMODES, WHITE } from "../constants/constants.js";
 import socket from "../socket.js";
 export const getAllPossibleMoves = ({
   row,
@@ -76,6 +76,14 @@ export const isPiece = (item) => {
 export const addMove = (move, moves) => {
   return [...moves, move];
 };
+export const getTimeDetailsFromMode=(mode)=>{
+  const cur={initial:0,increment:0,delay:0};
+  if(mode===TIMEMODES.CUSTOM || mode===TIMEMODES.NONE) return;
+  else if(mode===TIMEMODES.BULLET) return {...cur,initial:2,increment:1};
+  else if(mode===TIMEMODES.BLITZ) return {...cur,initial:5,increment:5};
+  else if(mode===TIMEMODES.RAPID) return {...cur,initial:15,increment:10};
+  else return {};
+}
 export const canEnPassant = (lastMove, { curRow, curCol }) => {
   if (!lastMove) return false;
   return (

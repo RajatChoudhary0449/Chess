@@ -61,3 +61,10 @@ export const MESSAGE_TYPES = {
   WARNING: "warning",
   SUCCESS: "success",
 };
+export const TIMEMODES={
+  NONE: "None",
+  BULLET: "Bullet(2+1)",
+  BLITZ: "Blitz(5+5)",
+  RAPID: "Rapid(15+10)",
+  CUSTOM: "Custom"
+}

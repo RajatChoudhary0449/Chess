@@ -1,23 +1,22 @@
 import { useState } from 'react'
-import { customAlphabet } from 'nanoid';
 import { useNavigate } from "react-router-dom"
 import whiteKing from "../assets/whiteKing.png"
 import blackKing from "../assets/blackKing.png"
 import socket from "../socket"
-import { BLACK, MESSAGE_TYPES, WHITE } from '../constants/constants';
-import { convertToPascal } from '../utils/CommonFunctions';
+import { BLACK, MESSAGE_TYPES, TIMEMODES, WHITE } from '../constants/constants';
+import { convertToPascal, getTimeDetailsFromMode } from '../utils/CommonFunctions';
 import useNotification from '../hooks/useNotification';
 import one from "../assets/1pchess.jpeg"
 import two from "../assets/2pchess.webp"
 import FullScreenContainer from './common/FullScreenContainer';
+import useGameSetting from '../hooks/useGameSetting';
 export default function CreateRoom() {
     const timeModesCustom = [{ name: "initial", value: 5, title: "Initial(min)" }, { name: "increment", value: 2, title: "Increment(sec)" }, { name: "delay", value: 0, title: "Delay(sec)" }]
     const listOfAlphabets = `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`;
     //const colours=[WHITE,BLACK,"Random"];
-    const timeModesData = [{ name: "None", value: "None" }, { name: "Bullet", value: "Bullet(2+1)" }, { name: "Blitz", value: "Blitz(5+5)" }, { name: "Rapid", value: "Rapid(15+10)" }, { name: "Custom", value: "Custom" }];
     const playersData = [{ name: "One Player", value: 1, imageSrc: one }, { name: "Two Player", value: 2, imageSrc: two }];
-    const generateRoomId = customAlphabet(listOfAlphabets, 6);
-    const [input, setInput] = useState({ id: generateRoomId(), mode: 1, color: WHITE, timeMode: "Blitz(5+5)", time: { initial: 5, increment: 5, delay: 0 } });
+    const {getSetting,updateSetting}=useGameSetting();
+    const [input, setInput] = useState(getSetting);
     const nav = useNavigate();
     const { showNotification } = useNotification();
     const validateRoomId = () => {
@@ -36,12 +35,14 @@ export default function CreateRoom() {
     }
     const handleBackPress = () => {
         nav("/room");
+        updateSetting(input);
     }
     const handleRoomCreation = () => {
         const { status, message, messageType: mt } = validateRoomId();
         showNotification({ message, type: mt })
         if (!status) return;
         socket.emit("create_room", { id: input.id, players: input.mode, color: input.color === "Random" ? generateRandomColor() : input.color, time: { mode: input.timeMode, ...input.time } });
+        updateSetting(input);
     }
     const handleTimeChange = (e) => {
         if (Number(e.target.value) >= 60) {
@@ -69,18 +70,12 @@ export default function CreateRoom() {
     }
     const handleTimeModeChange = (e) => {
         const val = e.target.value;
-        if (val === "Custom" || val === "None") {
+        if (val === TIMEMODES.CUSTOM || val === TIMEMODES.NONE) {
             setInput({ ...input, timeMode: val });
         }
         else {
-            let initialTime = 0, increment = 0, delay = 0;
-            switch (val) {
-                case 'Bullet(2+1)': initialTime = 2; increment = 1; break;
-                case 'Blitz(5+5)': initialTime = 5; increment = 5; break;
-                case 'Rapid(15+10)': initialTime = 15; increment = 10; break;
-                default: delay = -1;
-            }
-            setInput({ ...input, time: { ...input.time, initial: initialTime, increment, delay: delay !== -1 ? delay : input.time.delay }, timeMode: val });
+            const time=getTimeDetailsFromMode(val);
+            setInput({ ...input, time, timeMode: val });
         }
     }
     return (
@@ -136,8 +131,8 @@ export default function CreateRoom() {
                 <div className='flex items-center gap-x-4'>
                     <p className='text-xl md:text-2xl font-semibold'>Time Control</p>
                     <select className='text-xl outline-none py-2' onChange={handleTimeModeChange} value={input.timeMode}>
-                        {timeModesData.map(item => (
-                            <option key={item.value} className='text-[#444] text-xl' value={item.value}>{item.value}</option>
+                        {Object.values(TIMEMODES).map(item => (
+                            <option key={item} className='text-[#444] text-xl' value={item}>{item}</option>
                         ))}
                     </select>
                 </div>
