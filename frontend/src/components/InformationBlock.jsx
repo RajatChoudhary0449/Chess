@@ -23,9 +23,9 @@ export default function InformationBlock() {
     return (
         <div className="flex md:flex-row flex-col gap-y-2 justify-between items-center">
             <div className="flex gap-x-4 items-center md:justify-start justify-between w-full md:w-auto">
-                <div className={`text-white flex flex-col md:text-2xl text-xl cursor-pointer`} onClick={handleBackClick}>
-                    {"< Back"}
-                </div>
+                <button className={`text-white flex gap-x-2 md:text-2xl text-xl cursor-pointer`} onClick={handleBackClick}>
+                    <span><i className="fas fa-arrow-left"></i></span>Back
+                </button>
                 <div className="text-white flex flex-col md:hidden md:text-2xl text-xl justify-center">
                     <div className="flex gap-x-2 items-center">
                         <p>

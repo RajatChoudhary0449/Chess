@@ -86,7 +86,9 @@ export default function CreateRoom() {
     return (
         <FullScreenContainer>
             <div className='h-auto bg-[#444] text-white rounded-2xl px-2 md:px-4 py-4 flex flex-col gap-y-4 max-w-[90dvw]'>
-                <button className="flex justify-start text-white bg-[#444] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
+                <button className={`text-white flex gap-x-2 md:text-2xl text-xl cursor-pointer`} onClick={handleBackPress}>
+                    <span><i className="fas fa-arrow-left"></i></span>Back
+                </button>
                 <div className='flex gap-x-4'>
                     <p className='md:text-2xl font-semibold text-xl text-nowrap flex items-center'>Mode</p>
                     <div className='flex w-full md:w-auto md:gap-x-4 justify-between md:justify-start'>

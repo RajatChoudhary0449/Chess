@@ -36,7 +36,9 @@ export default function Room() {
     return (
         <FullScreenContainer>
             <div className='h-auto bg-[#444] text-white rounded-2xl px-4 py-6 max-w-[90%]'>
-                <button className="flex justify-start text-white bg-[#444] md:text-2xl text-xl pr-4" onClick={handleBackPress}>{"< Back"}</button>
+                <button className={`text-white flex gap-x-2 md:text-2xl text-xl cursor-pointer`} onClick={handleBackPress}>
+                    <span><i className="fas fa-arrow-left"></i></span>Back
+                </button>
                 <h3 className='my-2 text-xl'>Choose one of the option:</h3>
                 <div className='flex flex-col text-xl gap-y-2'>
                     <button className='hover:bg-white hover:text-[#444] font-bold border-white border px-4 py-4 flex rounded-[4px] items-center gap-x-4 cursor-pointer' onClick={handleCreateRoom}>
