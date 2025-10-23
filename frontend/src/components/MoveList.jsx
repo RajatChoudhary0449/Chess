@@ -5,7 +5,8 @@ import socket from '../socket';
 import { useEffect, useRef, useState } from 'react';
 // import { useNavigate } from 'react-router-dom';
 export default function MoveList({ val }) {
-    const { moves, spectatorMode, curTurn, setCurTurn, setAvailableMoves, setBoard, setMoves, playerColor, setGameOver, setMessage, activeMoveIndex, setActiveMoveIndex, setActiveSquare } = useGame();
+    const { moves, spectatorMode, curTurn, setCurTurn, setAvailableMoves, setBoard, setMoves, playerColor, setGameOver, setMessage, activeMoveIndex, setActiveMoveIndex, setActiveSquare, timeMode } = useGame();
+    const { mode } = timeMode;
     const moveRefs = useRef([]);
 
     const [usedDraw, setUsedDraw] = useState(false);
@@ -24,9 +25,11 @@ export default function MoveList({ val }) {
     }, [moves]);
     useEffect(() => {
         moveRefs.current[activeMoveIndex]?.scrollIntoView({ behavior: "smooth" });
-        setAvailableMoves([]);
-        setActiveSquare({ row: null, col: null });
-    }, [activeMoveIndex]);
+        if (activeMoveIndex !== moves.length - 1) {
+            setAvailableMoves([]);
+            setActiveSquare({ row: null, col: null });
+        }
+    }, [activeMoveIndex, moves.length]);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -105,7 +108,7 @@ export default function MoveList({ val }) {
     const shouldDisable = spectatorMode || curTurn !== playerColor || usedDraw;
     return (
         <div className="h-[150px] md:h-[min(80vh,80vw)] lg:h-[min(88vh,88vw)] md:max-h-[min(80vh,80vw)] lg:max-h-[min(88vh,88vw)] w-full">
-            <div className={`md:w-full md:max-w-[220px] md:min-w-[200px] w-[90dvw] max-w-[90dvw] mx-auto px-4 h-full bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 ${spectatorMode ? "md:mt-11" : "md:mt-18"} rounded-md shadow-md flex flex-col`}>
+            <div className={`md:w-full md:max-w-[220px] md:min-w-[200px] w-[90dvw] max-w-[90dvw] mx-auto px-4 h-full bg-[#e0c097]/90 text-[#5c3a1e] opacity-90 py-2 ${spectatorMode ? "md:mt-11" : mode === "None" ? "md:mt-13 md:h-[91%]" : "md:mt-18"} rounded-md shadow-md flex flex-col`}>
                 {!spectatorMode &&
                     <div className='flex justify-between gap-x-2 mb-2'>
                         <button className={` text-[16px] p-2 w-fit flex justify-center border border-white font-bold  transition duration-100 ${shouldDisable ? "pointer-none" : "hover:bg-white hover:scale-110 cursor-pointer"} disabled:opacity-50`} onClick={handleOfferDraw} disabled={shouldDisable}>Offer Draw</button>

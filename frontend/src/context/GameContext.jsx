@@ -109,7 +109,7 @@ export const GameProvider = ({ children }) => {
         if (room[WHITE] === socket.id || room[BLACK] === socket.id) {
           return;
         }
-        if (curRights.length === 0 || players === 1) {
+        if (curRights.length === 0 || room.players === 1) {
           socket.emit("join_room", { id: room.id, color: "spectator" });
           showNotification({ message: `Congrats, you are joined as a spectator`, type: MESSAGE_TYPES.SUCCESS })
         }

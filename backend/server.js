@@ -169,7 +169,7 @@ io.on("connection", (socket) => {
     const curTurn = room.moves?.length % 2 === 0 ? "white" : "black";
     let whiteTime = room.time.initial * 60,
       blackTime = room.time.initial * 60;
-    if (room.moves.length > 0) {
+    if (room.moves.length > 0 && room.time.mode!=="None") {
       const { whiteTime: wt, blackTime: bt } =
         room.moves[room.moves.length - 1];
       whiteTime = wt.hour * 3600 + wt.min * 60 + wt.sec;
@@ -246,13 +246,16 @@ io.on("connection", (socket) => {
     if (!room) return;
     room.moves = [...room.moves, move];
     // console.log(move, new Date() - room.lastUpdatedTime);
-    const { whiteTime: wt, blackTime: bt } = move;
-    const whiteTime = wt.hour * 3600 + wt.min * 60 + wt.sec;
-    const blackTime = bt.hour * 3600 + bt.min * 60 + bt.sec;
-    if (move.turn === "white")
-      sendToOpponent({ event: "set_clock", payload: { whiteTime } }, socket);
-    else sendToOpponent({ event: "set_clock", payload: { blackTime } }, socket);
-    room.lastUpdatedTime = new Date();
+    if(!room.time.mode==="None")
+    {
+      const { whiteTime: wt, blackTime: bt } = move;
+      const whiteTime = wt.hour * 3600 + wt.min * 60 + wt.sec;
+      const blackTime = bt.hour * 3600 + bt.min * 60 + bt.sec;
+      if (move.turn === "white")
+        sendToOpponent({ event: "set_clock", payload: { whiteTime } }, socket);
+      else sendToOpponent({ event: "set_clock", payload: { blackTime } }, socket);
+      room.lastUpdatedTime = new Date();
+    }
     const opponentTurn = move.turn === "white" ? "black" : "white";
     socket.emit("start_clock", {
       color: opponentTurn,
