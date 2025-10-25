@@ -76,14 +76,17 @@ export const isPiece = (item) => {
 export const addMove = (move, moves) => {
   return [...moves, move];
 };
-export const getTimeDetailsFromMode=(mode)=>{
-  const cur={initial:0,increment:0,delay:0};
-  if(mode===TIMEMODES.CUSTOM || mode===TIMEMODES.NONE) return;
-  else if(mode===TIMEMODES.BULLET) return {...cur,initial:2,increment:1};
-  else if(mode===TIMEMODES.BLITZ) return {...cur,initial:5,increment:5};
-  else if(mode===TIMEMODES.RAPID) return {...cur,initial:15,increment:10};
+export const getTimeDetailsFromMode = (mode) => {
+  const cur = { initial: 0, increment: 0, delay: 0 };
+  if (mode === TIMEMODES.CUSTOM || mode === TIMEMODES.NONE) return;
+  else if (mode === TIMEMODES.BULLET)
+    return { ...cur, initial: 2, increment: 1 };
+  else if (mode === TIMEMODES.BLITZ)
+    return { ...cur, initial: 5, increment: 5 };
+  else if (mode === TIMEMODES.RAPID)
+    return { ...cur, initial: 15, increment: 10 };
   else return {};
-}
+};
 export const canEnPassant = (lastMove, { curRow, curCol }) => {
   if (!lastMove) return false;
   return (
@@ -626,6 +629,123 @@ export const getAllBlackPieces = (board) => {
     }
   }
   return allPieces;
+};
+export const getAllCapturedWhitePieces = (board) => {
+  const allWhitePieces = getAllWhitePieces(board);
+  const pieces = {};
+
+  // Group all white pieces by type
+  for (const { piece, row, col } of allWhitePieces) {
+    if (!pieces[piece]) pieces[piece] = [];
+    pieces[piece].push({ row, col });
+  }
+
+  const count = (type) => pieces[type]?.length || 0;
+
+  // Handle bishops — detect if both colors of squares exist
+  const bishopSquares = pieces[PIECES.WHITE.BISHOP]?.map(
+    (b) => (b.row + b.col) % 2
+  ) || [];
+  const uniqueBishopColors = new Set(bishopSquares);
+  let capturedBishop = 0;
+
+  if (count(PIECES.WHITE.BISHOP) < 2) {
+    capturedBishop = 2 - count(PIECES.WHITE.BISHOP);
+  } else if (uniqueBishopColors.size === 1) {
+    // both bishops are on same color → one must be promoted
+    capturedBishop = 1;
+  }
+
+  // Handle promotions → any extra knights/rooks/bishops/queens beyond starting count come from pawn promotions
+  const promotedPieces =
+    Math.max(0, count(PIECES.WHITE.KNIGHT) - 2) +
+    Math.max(0, count(PIECES.WHITE.BISHOP) - 2) +
+    Math.max(0, count(PIECES.WHITE.ROOK) - 2) +
+    Math.max(0, count(PIECES.WHITE.QUEEN) - 1);
+
+  // Captured pawns = total - (remaining + promoted)
+  const capturedPawns = 8 - (count(PIECES.WHITE.PAWN) + promotedPieces);
+
+  const result = {
+    [PIECES.WHITE.PAWN]: Math.max(capturedPawns, 0),
+    [PIECES.WHITE.KNIGHT]: Math.max(2 - count(PIECES.WHITE.KNIGHT), 0),
+    [PIECES.WHITE.BISHOP]: Math.max(capturedBishop, 0),
+    [PIECES.WHITE.ROOK]: Math.max(2 - count(PIECES.WHITE.ROOK), 0),
+    [PIECES.WHITE.QUEEN]: Math.max(1 - count(PIECES.WHITE.QUEEN), 0),
+  };
+
+  return result;
+};
+export const getAllCapturedBlackPieces = (board) => {
+  const allBlackPieces = getAllBlackPieces(board);
+  const pieces = {};
+
+  // Group all white pieces by type
+  for (const { piece, row, col } of allBlackPieces) {
+    if (!pieces[piece]) pieces[piece] = [];
+    pieces[piece].push({ row, col });
+  }
+
+  const count = (type) => pieces[type]?.length || 0;
+
+  // Handle bishops — detect if both colors of squares exist
+  const bishopSquares = pieces[PIECES.BLACK.BISHOP]?.map(
+    (b) => (b.row + b.col) % 2
+  ) || [];
+  const uniqueBishopColors = new Set(bishopSquares);
+  let capturedBishop = 0;
+
+  if (count(PIECES.BLACK.BISHOP) < 2) {
+    capturedBishop = 2 - count(PIECES.BLACK.BISHOP);
+  } else if (uniqueBishopColors.size === 1) {
+    // both bishops are on same color → one must be promoted
+    capturedBishop = 1;
+  }
+
+  // Handle promotions → any extra knights/rooks/bishops/queens beyond starting count come from pawn promotions
+  const promotedPieces =
+    Math.max(0, count(PIECES.BLACK.KNIGHT) - 2) +
+    Math.max(0, count(PIECES.BLACK.BISHOP) - 2) +
+    Math.max(0, count(PIECES.BLACK.ROOK) - 2) +
+    Math.max(0, count(PIECES.BLACK.QUEEN) - 1);
+
+  // Captured pawns = total - (remaining + promoted)
+  const capturedPawns = 8 - (count(PIECES.BLACK.PAWN) + promotedPieces);
+
+  const result = {
+    [PIECES.BLACK.PAWN]: Math.max(capturedPawns, 0),
+    [PIECES.BLACK.KNIGHT]: Math.max(2 - count(PIECES.BLACK.KNIGHT), 0),
+    [PIECES.BLACK.BISHOP]: Math.max(capturedBishop, 0),
+    [PIECES.BLACK.ROOK]: Math.max(2 - count(PIECES.BLACK.ROOK), 0),
+    [PIECES.BLACK.QUEEN]: Math.max(1 - count(PIECES.BLACK.QUEEN), 0),
+  };
+
+  return result;
+};
+export const getPointsFromPieces = (board) => {
+  const whitePieces = getAllWhitePieces(board).map((item) => item.piece);
+  const blackPieces = getAllBlackPieces(board).map((item) => item.piece);
+
+  const pieceValue = {
+    [PIECES.WHITE.PAWN]: 1,
+    [PIECES.WHITE.KNIGHT]: 3,
+    [PIECES.WHITE.BISHOP]: 3,
+    [PIECES.WHITE.ROOK]: 5,
+    [PIECES.WHITE.QUEEN]: 9,
+    [PIECES.BLACK.PAWN]: 1,
+    [PIECES.BLACK.KNIGHT]: 3,
+    [PIECES.BLACK.BISHOP]: 3,
+    [PIECES.BLACK.ROOK]: 5,
+    [PIECES.BLACK.QUEEN]: 9,
+  };
+
+  const totalPoints = (pieces) =>
+    pieces.reduce((acc, piece) => acc + (pieceValue[piece] || 0), 0);
+
+  return {
+    white: totalPoints(whitePieces),
+    black: totalPoints(blackPieces),
+  };
 };
 export const isWhiteKingChecked = (board) => {
   const [kingCoordinate] = getPieceCoordinates(PIECES.WHITE.KING, board);

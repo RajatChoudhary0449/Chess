@@ -1,6 +1,6 @@
 import { BLACK, INITIALBOARDSETUP, MESSAGE_TYPES, PIECES, POSITIONS, WHITE } from '../constants/constants';
 import useGame from '../hooks/useGame';
-import { addMove, areCoordinatesEqual, blackPieceAvailable, canBlackKingCastleLongRight, canBlackKingCastleShortRight, canWhiteKingCastleLongRight, canWhiteKingCastleShortRight, checkGameOver, decode, encode, flip, flipBoard, flipCoordinates, flipTurn, getAllPossibleMoves, getFenPosition, getLastMove, isBlackKingChecked, isWhiteKingChecked, pieceAvailable, playMove, whitePieceAvailable } from '../utils/CommonFunctions';
+import { addMove, areCoordinatesEqual, blackPieceAvailable, canBlackKingCastleLongRight, canBlackKingCastleShortRight, canWhiteKingCastleLongRight, canWhiteKingCastleShortRight, checkGameOver, decode, encode, flip, flipBoard, flipCoordinates, flipTurn, getAllCapturedWhitePieces, getAllPossibleMoves, getFenPosition, getLastMove, isBlackKingChecked, isWhiteKingChecked, pieceAvailable, playMove, whitePieceAvailable } from '../utils/CommonFunctions';
 import blackRook from "../assets/blackRook.png";
 import blackKnight from "../assets/blackKnight.png";
 import blackBishop from "../assets/blackBishop.png";
@@ -23,7 +23,7 @@ export default function Board({ onePlayer }) {
     const [renderBoard, setRenderBoard] = useState(flipped ? flipBoard(board) : board);
     const [premove, setPremove] = useState({ from: null, to: null });
     const { showNotification } = useNotification();
-    
+
     useEffect(() => {
         // Start with the base board from the current active move
         const currentBoard = moves?.[activeMoveIndex]?.board || INITIALBOARDSETUP;
@@ -76,7 +76,7 @@ export default function Board({ onePlayer }) {
                 const to = { row: toRow, col: toCol };
                 const piece = board[from.row][from.col];
                 // const promotedTo = data?.promotion;
-                handleClick({ ...from, piece });
+                handleClick({ ...from, piece, bot: true });
 
                 const availableMoves = [to];
                 const activeSquare = from;
@@ -85,7 +85,7 @@ export default function Board({ onePlayer }) {
 
                 const toPiece = board[to.row][to.col];
 
-                handleClick({ ...to, piece: toPiece }, true, { piece, availableMoves, activeSquare });
+                handleClick({ ...to, piece: toPiece, bot: true }, true, { piece, availableMoves, activeSquare });
             }
             catch (err) {
                 console.log(err);
@@ -116,10 +116,10 @@ export default function Board({ onePlayer }) {
     const getActiveSquare = () => {
         return activeSquare;
     }
-    const handleClick = ({ row, col, piece }, shouldPlayWithoutCheck = null, overridingParams = {}) => {
+    const handleClick = ({ row, col, piece, bot = false }, shouldPlayWithoutCheck = null, overridingParams = {}) => {
         const board = getLastMove(moves)?.board || INITIALBOARDSETUP;
 
-        if (curTurn !== playerColor) {
+        if (curTurn !== playerColor && !bot) {
             if (!premove.from &&
                 ((playerColor === WHITE && !whitePieceAvailable(row, col, board)) || (playerColor === BLACK && !blackPieceAvailable(row, col, board))))
                 return;
@@ -147,7 +147,7 @@ export default function Board({ onePlayer }) {
                 )
                     setPremove(_ => ({ from: curClickInfo, to: null }));
             }
-            return;
+            if (!onePlayer) return;
         }
         const coordinate = { row, col };
         if (!shouldPlayWithoutCheck) {
@@ -228,7 +228,6 @@ export default function Board({ onePlayer }) {
         }
     }
     const getBackground = (isWhiteSquare, row, col) => {
-        console.log(activeSquare);
         const coordinate = { row, col };
         const lastMove = moves?.[activeMoveIndex];
         const shouldHover = (curTurn === WHITE && whitePieceAvailable(row, col, board)) || (curTurn === BLACK && blackPieceAvailable(row, col, board)) || (availableMoves.some((item) => areCoordinatesEqual(item, coordinate)));

@@ -14,6 +14,7 @@ import JoinChoiceModal from "./JoinChoiceModal.jsx";
 import { BLACK, WHITE } from "../constants/constants.js";
 import TimerWindow from "./TimerWindow.jsx";
 import FullScreenContainer from "./common/FullScreenContainer.jsx";
+import CapturedPieceWindow from "./CapturedPieceWindow.jsx";
 export default function Screen() {
     const { curTurn, setCurTurn, promotionPiece, setPromotionPiece, gameOver, setGameOver, board, setBoard, setMoves, message, setMessage, playerColor, spectatorMode, setSpectatorMode, drawWindow, showDrawWindow, availableRights, showJoinModal, setShowJoinModal, flipped, blackPlayerTimerRef, whitePlayerTimerRef, timeMode, players } = useGame();
     const [val, setVal] = useState();
@@ -81,13 +82,15 @@ export default function Screen() {
                             <div className="flex md:flex-row flex-col gap-y-2 md:gap-x-4 text-white">
                                 {spectatorMode && <EvaluationBar val={val} setVal={setVal} />}
                                 <div className="flex flex-col">
-                                    <div className="flex justify-end md:mr-0 mr-5">
+                                    <div className="flex justify-between md:mx-0 mx-5">
+                                        <CapturedPieceWindow isWhite={flipped}/>
                                         {timeMode?.mode !== "None" &&
                                             <TimerWindow ref={flipped ? whitePlayerTimerRef : blackPlayerTimerRef} time={timeMode?.initial * 60} color={flipped ? WHITE : BLACK} onTimerUp={() => handleTimeOut(flipped ? BLACK : WHITE)}></TimerWindow>
                                         }
                                     </div>
                                     <Board onePlayer={onePlayer} />
-                                    <div className="flex justify-end md:mr-0 mr-5">
+                                    <div className="flex justify-between md:mx-0 mx-5">
+                                        <CapturedPieceWindow isWhite={!flipped}/>
                                         {timeMode?.mode !== "None" &&
                                             <TimerWindow ref={flipped ? blackPlayerTimerRef : whitePlayerTimerRef} time={timeMode?.initial * 60} color={flipped ? BLACK : WHITE} onTimerUp={() => handleTimeOut(flipped ? WHITE : BLACK)}></TimerWindow>
                                         }
