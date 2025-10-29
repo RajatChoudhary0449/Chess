@@ -9,8 +9,8 @@ export default function FullScreenContainer({ children }) {
     }, []);
     const isMobile=useMobileView();
     return (
-        <div className={`md:h-[100dvh] w-[100dvw] flex justify-center items-center`} style={{ backgroundImage: `url("/icon.jpeg")`, 
-        ...(isMobile && {height:`${height}px`})
+        <div className={`md:h-[100dvh] w-[100%] max-w-[100vw] flex justify-center items-center`} style={{ backgroundImage: `url("/icon.jpeg")`, 
+        ...(isMobile && {minHeight:`${height}px`})
         }}>
             {children}
         </div>

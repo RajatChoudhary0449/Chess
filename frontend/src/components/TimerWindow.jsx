@@ -21,7 +21,7 @@ const TimerWindow = forwardRef(({ time = 100, color, onTimerUp }, ref) => {
     ))
     const { hour, min, sec } = timeLeft;
     return (
-        <div className={`flex gap-x-4 ${color === WHITE ? "bg-white text-[#444]" : "bg-black text-white border-white border"} p-2 font-bold md:text-lg`}>
+        <div className={`flex ml-auto gap-x-4 ${color === WHITE ? "bg-white text-[#444]" : "bg-black text-white border-white border"} p-2 font-bold md:text-lg`}>
             {isRunning && <div className='animate-spin'><i className="fa-regular fa-clock"></i></div>}
             <div className={``}>
                 {String(hour).padStart(2, '0')}:

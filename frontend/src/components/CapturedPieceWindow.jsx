@@ -62,11 +62,14 @@ export default function CapturedPieceWindow({ isWhite }) {
         PIECES[symbol].ROOK,
         PIECES[symbol].QUEEN,
     ];
-
+    const checkIfNone=()=>{
+        const res=new Set([...Object.values(currentCapturedPieces)]);
+        return res.size===1 && res.has(0) && (points?.white-points?.black)===0;
+    }
     return (
         <div
             className={`flex items-center p-1 ${isWhite ? "bg-[#444]" : "bg-white"
-                } overflow-x-auto`}
+                } overflow-x-auto ${checkIfNone() && "hidden"}`}
         >
             {pieceOrder.map((pieceType) => {
                 const count = currentCapturedPieces[pieceType] || 0;
@@ -75,7 +78,7 @@ export default function CapturedPieceWindow({ isWhite }) {
                 return (
                     <div
                         key={pieceType}
-                        className="flex items-center mr-1 last:mr-0 relative"
+                        className="flex items-center h-full mr-1 last:mr-0 relative"
                     >
                         {Array.from({ length: count }).map((_, i) => (
                             <img
@@ -88,8 +91,8 @@ export default function CapturedPieceWindow({ isWhite }) {
                     </div>
                 );
             })}
-            {isWhite && points.white>points.black && <p className="text-white">+{points.white-points.black}</p>}
-            {!isWhite && points.black>points.white && <p className="">+{points.black-points.white}</p>}
+            {isWhite && points.white>points.black && <p className="text-white items-center flex h-full font-bold">+{points.white-points.black}</p>}
+            {!isWhite && points.black>points.white && <p className="text-[#444] items-center flex h-full font-bold">+{points.black-points.white}</p>}
         </div>
     );
 

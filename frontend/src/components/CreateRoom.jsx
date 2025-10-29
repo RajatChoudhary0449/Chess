@@ -137,9 +137,9 @@ export default function CreateRoom() {
                     </select>
                 </div>
                 {input.timeMode === "Custom" &&
-                    <div className='grid grid-cols-3 gap-x-4 mt-4'>
+                    <div className='flex md:grid items-center md:items-start w-full md:w-auto md:grid-cols-3 flex-col  gap-4 mt-4'>
                         {timeModesCustom.map((item, index) => (
-                            <div className='w-[140px] aspect-square flex flex-col items-center text-white' key={index}>
+                            <div className='w-[140px] md:aspect-square flex flex-col items-center text-white' key={index}>
                                 <p className='text-xl text-nowrap'>{item.title}</p>
                                 <div className='flex items-center'>
                                     <button onClick={() => {

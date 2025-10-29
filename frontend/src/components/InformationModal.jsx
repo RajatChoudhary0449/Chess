@@ -58,7 +58,7 @@ export default function InformationModal({ hide, message, position = POSITIONS.T
         </div>
 
         <div className="flex justify-between items-center max-w-[200px]">
-          <p className="font-semibold">{message}</p>
+          <p className="font-semibold text-xs md:text-[16px]">{message}</p>
           <button
             onClick={hide}
             className="ml-4 text-gray-400 hover:text-red-500 transition"
