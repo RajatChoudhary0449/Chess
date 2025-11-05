@@ -99,7 +99,7 @@ export default function CreateRoom() {
                 </div>
                 <div className='flex items-center gap-x-4'>
                     <p className='md:text-2xl font-semibold text-xl text-nowrap'>Room ID</p>
-                    <input value={input.id} onChange={(e) => setInput(input => ({ ...input, id: e.target.value }))} className="outline-none px-4 py-4 text-xl" spellCheck={false} maxLength={6}></input>
+                    <input value={input.id} onChange={(e) => setInput(input => ({ ...input, id: e.target.value }))} className="outline-none px-4 py-4 text-xl" spellCheck={false} maxLength={6} size={6}></input>
                 </div>
                 <div className='flex items-center gap-x-4'>
                     <p className='text-xl md:text-2xl font-semibold'>Color</p>

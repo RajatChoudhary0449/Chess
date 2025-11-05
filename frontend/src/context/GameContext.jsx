@@ -156,7 +156,7 @@ export const GameProvider = ({ children }) => {
         nav(`/room/${id}`);
       }
       else {
-        showNotification({ message: "Room already exist", type: MESSAGE_TYPES.WARNING });
+        showNotification({ message: "Room ID already exists. Change the ID or join the existing room", type: MESSAGE_TYPES.WARNING });
       }
     }
     const onPlayerAssignment = (color) => {

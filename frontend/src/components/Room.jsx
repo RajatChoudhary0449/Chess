@@ -44,7 +44,7 @@ export default function Room() {
                     <button className='hover:bg-white hover:text-[#444] font-bold border-white border px-4 py-4 flex rounded-[4px] items-center gap-x-4 cursor-pointer' onClick={handleCreateRoom}>
                         Create a room
                     </button>
-                    <input maxLength={7} onChange={(e) => setInputId(e.target.value)} value={inputId} className="mt-2 px-4 py-4 outline-none text-decoration-none border-white text-white" autoFocus placeholder="Enter the room id to join" spellCheck={false}></input>
+                    <input maxLength={6} onChange={(e) => setInputId(e.target.value)} value={inputId} className="mt-2 px-4 py-4 outline-none text-decoration-none border-white text-white" autoFocus placeholder="Enter the room id to join" spellCheck={false}></input>
                     <button className='hover:bg-white hover:text-[#444] font-bold border-white border px-4 py-4 flex rounded-[4px] items-center justify-between cursor-pointer ' onClick={handleJoinRoom}>
                         {showModes ? "Join as?" : "Join a Room"}
                         <div className="flex gap-x-2">
